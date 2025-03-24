@@ -98,9 +98,10 @@
                                 FROM cars a
 
                                 LEFT JOIN reserve b
-                                USING(car_id)
-                                WHERE cancel_day IS NULL OR use_display = true
-                                ORDER BY display_car_id ASC, b.start_time ASC;   
+                                ON a.car_id = b.car_id
+                                AND b.cancel_day IS NULL
+                                OR a.use_display = true
+                                ORDER BY display_car_id ASC, b.start_time ASC;
                             ';
 
                             // 実行
@@ -127,6 +128,83 @@
 
 
                     break;
+
+                    /// <summery>
+                    /// 予約情報が重複して無いか確認
+                    /// </summery>
+                    case 'CheckDoubleData':
+
+                        // 保存させたいデータ (配列)
+                        $SaveCheckDataArray = $array_data->SaveData;
+
+                        try
+                        {
+
+                            // ✅ すべての重複データをまとめて格納する配列
+                            $allDoubleData = [];
+
+                            // ループ処理で複数レコードを保存
+                            foreach ($SaveCheckDataArray as $SaveData) {
+
+                                $CarId = $SaveData->car_id;
+                                $UseStartDay = $SaveData->startDate;
+                                $StartTime = $SaveData->startTime;
+                                $UseEndDay = $SaveData->endDate;
+                                $UseEndTime = $SaveData->endTime;
+
+
+                                // マスター情報取得クエリ
+                                $sql_1 = "
+                                SELECT
+                                    use_start_day,
+                                    start_time,
+                                    end_time,
+                                    driver
+                                FROM reserve
+                                WHERE
+                                car_id = $1
+                                AND cancel_day IS NULL
+                                AND (
+                                    (use_start_day || ' ' || start_time) <= $2
+                                    AND
+                                    (use_end_day || ' ' || end_time) >= $3
+                                )
+                                ORDER BY car_id ASC;";
+
+                                // $1 = $CarId $2 = "$UseEndDay $UseEndTime" $3 = "$UseStartDay $StartTime"
+                                $params = [
+                                    $CarId,
+                                    "$UseEndDay $UseEndTime",
+                                    "$UseStartDay $StartTime"
+                                ];
+
+                                // 実行
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+
+                                $rows = pg_fetch_all($result1);
+
+                                // ✅ 結果が false（0件）なら空配列としてスキップ、それ以外はマージ
+                                if ($rows !== false) {
+                                    $allDoubleData = array_merge($allDoubleData, $rows);
+                                }
+                            }
+        
+                                //オブジェクト配列
+                                $all_data = ['data' => ['CheckData' => $allDoubleData] ]; 
+        
+            
+                                //クエリのコミット
+                                pg_query($pg_conn,"COMMIT");
+                            } 
+                            catch (Exception $ex) {
+        
+                                var_dump($ex->getMessage());
+        
+                                // クエリのロールバック
+                                pg_query($pg_conn,"ROLLBACK");
+                                pg_close($pg_conn);
+                            }
+                     break;   
 
                     
                     // <summery>

@@ -72,94 +72,94 @@
                     // </summery>
                     case 'SaveReserveGarage':
 
-                        // 保存させたいデータ
-                        $SaveData = $array_data -> SaveData;
+                        // 保存させたいデータ (配列)
+                        $SaveDataArray = $array_data->SaveData;
 
                         // 現在の日時
                         $today = date('Y-m-d H:i:s');
 
-                        try
-                        {
+                        try {
+                            // ループ処理で複数レコードを保存
+                            foreach ($SaveDataArray as $SaveData) {
 
-                            $CarId = $SaveData->car_id;
-                            $UseStartDay = $SaveData->startDate;
-                            $StartTime = $SaveData->startTime;
-                            $UseEndDay = $SaveData->endDate;
-                            $UseEndTime = $SaveData->endTime;
-                            $Driver = $SaveData->driver;
-                            $Place = $SaveData->place;
-                            $NumOfPeople = $SaveData->people;
-                            $Luggage = $SaveData->luggage;
-                            $Memo = $SaveData->note;
-                            $CreatedUserId = $SaveData->createdUserId;
-                            $ETC = $SaveData->etc;
+                                $CarId = $SaveData->car_id;
+                                $UseStartDay = $SaveData->startDate;
+                                $StartTime = $SaveData->startTime;
+                                $UseEndDay = $SaveData->endDate;
+                                $UseEndTime = $SaveData->endTime;
+                                $Driver = $SaveData->driver;
+                                $Place = $SaveData->place;
+                                $NumOfPeople = $SaveData->people;
+                                $Luggage = $SaveData->luggage;
+                                $Memo = $SaveData->note;
+                                $CreatedUserId = $SaveData->createdUserId;
+                                $ETC = $SaveData->etc;
 
+                                // マスター情報取得クエリ
+                                $sql = "INSERT INTO reserve (
+                                    car_id,
+                                    use_start_day,
+                                    start_time,
+                                    use_end_day,
+                                    end_time,
+                                    driver,
+                                    place,
+                                    number_of_people,
+                                    luggage,
+                                    memo,
+                                    created_day,
+                                    created_user_id,
+                                    etc
+                                ) VALUES (
+                                    '$CarId',
+                                    '$UseStartDay',
+                                    '$StartTime',
+                                    '$UseEndDay',
+                                    '$UseEndTime',
+                                    '$Driver',
+                                    '$Place',
+                                    '$NumOfPeople',
+                                    '$Luggage',
+                                    '$Memo',
+                                    '$today',
+                                    '$CreatedUserId',
+                                    '$ETC'
+                                )";
 
-                            // マスター情報取得クエリ
-                            $sql = "INSERT INTO reserve (
-                                car_id,
-                                use_start_day,
-                                start_time,
-                                use_end_day,
-                                end_time,
-                                driver,
-                                place,
-                                number_of_people,
-                                luggage,
-                                memo,
-                                created_day,
-                                created_user_id,
-                                etc
-                                )
-                                VALUES(
-                                '$CarId',
-                                '$UseStartDay',
-                                '$StartTime',
-                                '$UseEndDay',
-                                '$UseEndTime',
-                                '$Driver',
-                                '$Place',
-                                '$NumOfPeople',
-                                '$Luggage',
-                                '$Memo',
-                                '$today',
-                                '$CreatedUserId',
-                                '$ETC'
-                                )
-                            ";
+                                // 実行
+                                $result1 = pg_query($pg_conn, $sql);
+
+                                // クエリ失敗時の処理
+                                if ($result1 === false) {
+                                    $all_data = [
+                                        'status' => 0,
+                                        'data' => [pg_last_error($pg_conn)],
+                                        'message' => '登録失敗'
+                                    ];
+                                    // ロールバックして処理を中断
+                                    pg_query($pg_conn, "ROLLBACK");
+                                    pg_close($pg_conn);
+                                    echo json_encode($all_data);
+                                    exit;
+                                }
+                            }
+
+                            // すべてのクエリが成功した場合
+                            $all_data = [
+                                'status' => 1,
+                                'data' => [true],
+                                'message' => '登録成功'
+                            ];
                             
+                            // コミット
+                            pg_query($pg_conn, "COMMIT");
 
-                            // 実行
-                            $result1 = pg_query($pg_conn, $sql);
-
-                             //クエリ失敗
-                            if ($result === false) {
-                                $all_data = [
-                                'status' => 0,
-                                'data' => [pg_last_error($pg_conn)],
-                                'message' => $returnMessage
-                                ];
-                            }
-                            //クエリ成功
-                            else{
-                                $all_data = [
-                                    'status' => 1,
-                                    'data' => [true],
-                                    'message' => '登録成功'
-                                ];
-    
-                                //コミット
-                                pg_query($pg_conn,"COMMIT");
-                            }
-                        } 
-                        catch (Exception $ex) {
-    
+                        } catch (Exception $ex) {
                             var_dump($ex);
-    
-                            // クエリのロールバック
-                            pg_query($pg_conn,"ROLLBACK");
+
+                            // ロールバック
+                            pg_query($pg_conn, "ROLLBACK");
                             pg_close($pg_conn);
-    
                         }
 
                     break;
