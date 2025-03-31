@@ -70,6 +70,10 @@
                     // BookingGarage・社有車予約情報入手
                     // </summery>
                     case 'GetGarageReserveInfo':
+
+                        // 日付情報の取り出し
+                        $SelectDay = $array_data -> SelectDay;
+
                         try
                         {
                             
@@ -82,30 +86,39 @@
                                 a.etc,
                                 a.seat_of_number,
 
-                                b.reserve_id,
-                                b.car_id,
-                                b.use_start_day,
-                                b.start_time,
-                                b.use_end_day,
-                                b.end_time,
-                                b.driver,
-                                b.place,
-                                b.number_of_people,
-                                b.luggage,
-                                b.memo,
-                                b.etc as reserve_etc
+                                COALESCE(b.reserve_id, 0) as reserve_id,
+                                COALESCE(b.car_id, 0) as car_id,
+                                COALESCE(b.use_start_day, \'\') as use_start_day,
+                                COALESCE(b.start_time, \'\') as start_time,
+                                COALESCE(b.use_end_day, \'\') as use_end_day,
+                                COALESCE(b.end_time, \'\') as end_time,
+                                COALESCE(b.driver, \'\') as driver,
+                                COALESCE(b.place, \'\') as place,
+                                COALESCE(b.number_of_people, \'\') as number_of_people,
+                                COALESCE(b.luggage, \'\') as luggage,
+                                COALESCE(b.memo, \'\') as memo,
+                                COALESCE(b.etc, \'\') as reserve_etc
 
                                 FROM cars a
 
                                 LEFT JOIN reserve b
                                 ON a.car_id = b.car_id
                                 AND b.cancel_day IS NULL
-                                OR a.use_display = true
+                                AND b.use_start_day = $1
+
+                                WHERE a.use_display = true
+                                
+
                                 ORDER BY display_car_id ASC, b.start_time ASC;
                             ';
 
+                            // $1 = $SelectDay  
+                            $params = [$SelectDay];
+
                             // 実行
-                            $result1 = pg_query($sql_1);
+                            $result1 = pg_query_params($pg_conn, $sql_1, $params);
+                            //$result1 = pg_query($sql_1);
+
                             $ReserveBookingData = pg_fetch_all($result1);
 
                             //オブジェクト配列
@@ -116,7 +129,7 @@
                             pg_query($pg_conn,"COMMIT");
     
                         } 
-                        catch (Exception $e) {
+                        catch (Exception $ex) {
     
                             var_dump($ex);
     
