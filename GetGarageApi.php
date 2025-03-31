@@ -106,7 +106,7 @@
                                 AND b.cancel_day IS NULL
                                 AND b.use_start_day = $1
 
-                                WHERE a.use_display = true
+                                WHERE a.use_display = true AND a.un_useble_day IS NULL
                                 
 
                                 ORDER BY display_car_id ASC, b.start_time ASC;
@@ -143,7 +143,7 @@
                     break;
 
                     /// <summery>
-                    /// 予約情報が重複して無いか確認
+                    /// 予約情報が重複して無いか確認(新規登録時)
                     /// </summery>
                     case 'CheckDoubleData':
 
@@ -217,8 +217,87 @@
                                 pg_query($pg_conn,"ROLLBACK");
                                 pg_close($pg_conn);
                             }
-                     break;   
+                     break;
+                     
+                    /// <summery>
+                    /// 予約情報が重複して無いか確認(予約変更時)
+                    /// </summery>
+                    case 'CheckDoubleData_Edit':
 
+                        // 保存させたいデータ (配列)
+                        $SaveCheckDataArray = $array_data->SaveData;
+
+                        try
+                        {
+
+                            // ✅ すべての重複データをまとめて格納する配列
+                            $allDoubleData = [];
+
+                            // ループ処理で複数レコードを保存
+                            foreach ($SaveCheckDataArray as $SaveData) {
+
+                                $CarId = $SaveData->CarId;
+                                $UseStartDay = $SaveData->StartDate;
+                                $StartTime = $SaveData->StartTime;
+                                $UseEndDay = $SaveData->EndDate;
+                                $UseEndTime = $SaveData->EndTime;
+
+                                var_dump($CarId, "$UseEndDay $UseEndTime", "$UseStartDay $StartTime");
+
+
+                                // マスター情報取得クエリ
+                                $sql_1 = "
+                                SELECT
+                                    use_start_day,
+                                    start_time,
+                                    end_time,
+                                    driver
+                                FROM reserve
+                                WHERE
+                                car_id = $1
+                                AND cancel_day IS NULL
+                                AND (
+                                    (use_start_day || ' ' || start_time) <= $2
+                                    AND
+                                    (use_end_day || ' ' || end_time) >= $3
+                                )
+                                ORDER BY car_id ASC;";
+
+                                // $1 = $CarId $2 = "$UseEndDay $UseEndTime" $3 = "$UseStartDay $StartTime"
+                                $params = [
+                                    $CarId,
+                                    "$UseEndDay $UseEndTime",
+                                    "$UseStartDay $StartTime"
+                                ];
+
+                                // 実行
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+
+                                $rows = pg_fetch_all($result1);
+
+                                // ✅ 結果が false（0件）なら空配列としてスキップ、それ以外はマージ
+                                if ($rows !== false) {
+                                    $allDoubleData = array_merge($allDoubleData, $rows);
+                                }
+                            }
+        
+                                //オブジェクト配列
+                                $all_data = ['data' => ['CheckData' => $allDoubleData] ]; 
+        
+            
+                                //クエリのコミット
+                                pg_query($pg_conn,"COMMIT");
+                            } 
+                            catch (Exception $ex) {
+        
+                                var_dump($ex->getMessage());
+        
+                                // クエリのロールバック
+                                pg_query($pg_conn,"ROLLBACK");
+                                pg_close($pg_conn);
+                            }
+                     break;
+                     
                     
                     // <summery>
                     // BookingGarage・マスター社有車情報入手
