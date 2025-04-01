@@ -178,7 +178,7 @@
                         try
                         {
 
-                            $ReserveId = $SaveData->Reserve_Id;
+                            $ReserveId = $SaveData->ReserveId;
                             $UseStartDay = $SaveData->StartDate;
                             $StartTime = $SaveData->StartTime;
                             $UseEndDay = $SaveData->EndDate;
@@ -327,6 +327,7 @@
                             $CarNo = $SaveData->Car_no;
                             $ETC = $SaveData->Etc;
                             $Garages = $SaveData->Garages;
+                            $SeatOfNumber = $SaveData->SeatOfNumber;
                             $CreateUserId = $SaveData->createdUserId;
 
                             // マスター情報取得クエリ
@@ -336,6 +337,7 @@
                                 etc,
                                 garages,
                                 creat_day,
+                                seat_of_number,
                                 create_user_id
                                 )
                                 VALUES(
@@ -344,6 +346,7 @@
                                 '$ETC',
                                 '$Garages',
                                 '$today',
+                                '$SeatOfNumber',
                                 '$CreateUserId'
                                 )
                             ";
