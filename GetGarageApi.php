@@ -182,7 +182,7 @@
                                     AND
                                     (use_end_day || ' ' || end_time) > $3
                                 )
-                                ORDER BY car_id ASC;";
+                                ORDER BY use_start_day ASC, start_time ASC;";
 
                                 // $1 = $CarId $2 = "$UseEndDay $UseEndTime" $3 = "$UseStartDay $StartTime"
                                 $params = [
@@ -259,7 +259,7 @@
                                     AND
                                     (use_end_day || ' ' || end_time) > $3
                                 )
-                                ORDER BY car_id ASC;";
+                                ORDER BY use_start_day ASC, start_time ASC;";
 
                                 // $1 = $CarId $2 = "$UseEndDay $UseEndTime" $3 = "$UseStartDay $StartTime"
                                 $params = [
