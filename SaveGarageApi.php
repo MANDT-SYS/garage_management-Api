@@ -310,7 +310,7 @@
                     break;
 
                     // <summery>
-                    // Cars・マスター社有車情報の変更
+                    // Cars・マスター社有車情報の追加
                     // </summery>
                     case 'AddMasterCar':
 
@@ -384,7 +384,6 @@
                         }
 
                     break;
-
 
                     // <summery>
                     // Cars・マスター社有車情報の変更
@@ -516,6 +515,53 @@
                         }
 
                     break;
+
+                    // <summery>
+                    // マスター・車の番号を変更
+                    // </summery>
+                    try {
+                        // トランザクション開始
+                        pg_query($pg_conn, "BEGIN");
+                    
+                        foreach ($SaveDataArray as $SaveData) {
+                            $CarId = $SaveData->Car_id;
+                            $DisplayNo = $SaveData->DisplayNo;
+                    
+                            // マスター情報取得クエリ
+                            $sql = "UPDATE cars SET display_no = '$DisplayNo' WHERE car_id = '$CarId'";
+                    
+                            // 実行
+                            $result1 = pg_query($pg_conn, $sql);
+                    
+                            if ($result1 === false) {
+                                $all_data = [
+                                    'status' => 0,
+                                    'data' => [pg_last_error($pg_conn)],
+                                    'message' => $returnMessage
+                                ];
+                                break;
+                            }
+                        }
+                    
+                        // クエリ成功
+                        $all_data = [
+                            'status' => 1,
+                            'data' => [true],
+                            'message' => '登録成功'
+                        ];
+                    
+                        // コミット
+                        pg_query($pg_conn, "COMMIT");
+                    } catch (Exception $ex) {
+                        // エラーハンドリング
+                        var_dump($ex);
+                    
+                        // ロールバック
+                        pg_query($pg_conn, "ROLLBACK");
+                    }
+                    break;
+                    
+
                 }                     
             }
         }
