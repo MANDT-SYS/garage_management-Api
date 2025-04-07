@@ -48,7 +48,7 @@
                 );
             /////////////////////////////////////////////////////////////
             /////////////////////////////////////////////////////////////
-            
+
 
             // メンテナンス状況のチェック ///////////////////////////////////////
 
@@ -120,7 +120,7 @@
                                 WHERE a.use_display = true AND a.un_useble_day IS NULL
                                 
 
-                                ORDER BY display_no ASC, b.start_time ASC;
+                                ORDER BY display_no ASC, display_car_id ASC, b.start_time ASC;
                             ';
 
                             // $1 = $SelectDay  
@@ -377,7 +377,7 @@
                                 FROM cars a
                                 LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id --一時的なユーザーテーブルと結合する
                                 WHERE a.un_useble_day IS NULL
-                                ORDER BY a.display_no ASC;
+                                ORDER BY a.display_no ASC, a.car_id ASC;
                             ';
  
                             // 実行
@@ -412,12 +412,67 @@
 
                         try
                         {
+                            ////////////////////////////////////////////////////////////////////
+                            // ユーザー情報の取得と、一時的テーブルの作成 //////////////////////////
+                            // curlのセッションを初期化する
+                            $ch = curl_init();
+                            // curlのオプションを設定する
+                            $options = array(
+                            CURLOPT_URL => 'https://system.syowa.com/user-management/api/'.ConstData::API_VER.'/user',
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_HTTPHEADER => $getExternalHeaders,
+                            );
+                            curl_setopt_array($ch, $options);
+                            // curlを実行し、レスポンスデータを保存する
+                            $response  = curl_exec($ch);
+                            $user_arr = json_decode($response,true);
+                            // curlセッションを終了する
+                            curl_close($ch);
+ 
+                            //一時的なテーブルの作成
+                            pg_query("
+                            CREATE TEMP TABLE temp_user_table(
+                                user_id INTEGER,
+                                user_name TEXT
+                                )
+                            ");
+ 
+                            // 一時的なテーブルにユーザー情報を挿入
+                            foreach ($user_arr["data"] as $userData) {
+                                //var_dump($orderData);
+                                pg_query("
+                                    INSERT INTO temp_user_table(
+                                        user_id,
+                                        user_name
+                                    )
+                                    VALUES (
+                                        '{$userData["userId"]}',
+                                        '{$userData["familyName"]} {$userData["givenName"]}'
+                                    )
+                                ");
+                                }
+ 
+                            ////////////////////////////////////////////////////////////////////
+                            ////////////////////////////////////////////////////////////////////
+
+
+
                             // マスター情報取得クエリ
                             $sql_1 = 'SELECT
-                                car_id,car_name,car_no,garages,etc,un_useble_day,un_useble_user_id,seat_of_number
-                                FROM cars
-                                WHERE un_useble_day IS NOT NULL 
-                                ORDER BY car_id ASC;
+                                a.car_id,
+                                a.car_name,
+                                a.car_no,
+                                a.garages,
+                                a.etc,
+                                a.creat_day,
+                                a.create_user_id,
+                                a.seat_of_number,
+                                a.use_display,
+                                b.user_name
+                                FROM cars a
+                                LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id --一時的なユーザーテーブルと結合する
+                                WHERE a.un_useble_day IS NOT NULL
+                                ORDER BY a.display_no ASC;
                             ';
 
                             // 実行
