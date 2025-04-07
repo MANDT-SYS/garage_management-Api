@@ -309,7 +309,7 @@
                         {
                             // マスター情報取得クエリ
                             $sql_1 = 'SELECT
-                                car_id,car_name,car_no,garages,etc,creat_day,create_user_id,seat_of_number
+                                car_id,car_name,car_no,garages,etc,creat_day,create_user_id,seat_of_number,use_display
                                 FROM cars
                                 WHERE un_useble_day IS NULL 
                                 ORDER BY display_no ASC;

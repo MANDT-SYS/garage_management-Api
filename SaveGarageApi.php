@@ -409,6 +409,7 @@
                             $ETC = $SaveData->ETC;
                             $Garages = $SaveData->Garages;
                             $EditUserId = $SaveData->EditUserId;
+                            $UseDisplay = $SaveData->Use_Display;
 
                             // マスター情報取得クエリ
                             $sql = "UPDATE cars SET
@@ -417,7 +418,8 @@
                                 etc = '$ETC',
                                 garages = '$Garages',
                                 edit_day = '$today',
-                                edit_user_id = '$EditUserId'
+                                edit_user_id = '$EditUserId',
+                                use_display = $UseDisplay
 
                                 WHERE car_id = '$CarId'
                             ";
