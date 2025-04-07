@@ -39,6 +39,17 @@
         // 認証に成功したら
         if($checkedData["data"]){
 
+            /////////////////////////////////////////////////////////////
+            // ユーザー情報取得のために必要な設定 //////////////////////////
+                // user_management用
+                $getExternalHeaders = array(
+                    "Authorization: Bearer ".SecretData::EXTERNAL_DB_KEY,
+                    "Content-type: application/json"
+                );
+            /////////////////////////////////////////////////////////////
+            /////////////////////////////////////////////////////////////
+            
+
             // メンテナンス状況のチェック ///////////////////////////////////////
 
             $loginUserAuthority = $array_data->loginUserAuthority;
@@ -304,40 +315,95 @@
                     // BookingGarage・マスター社有車情報入手
                     // </summery>
                     case 'GetMasterInfo':
-
+ 
                         try
                         {
+                            ////////////////////////////////////////////////////////////////////
+                            // ユーザー情報の取得と、一時的テーブルの作成 //////////////////////////
+                            // curlのセッションを初期化する
+                            $ch = curl_init();
+                            // curlのオプションを設定する
+                            $options = array(
+                            CURLOPT_URL => 'https://system.syowa.com/user-management/api/'.ConstData::API_VER.'/user',
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_HTTPHEADER => $getExternalHeaders,
+                            );
+                            curl_setopt_array($ch, $options);
+                            // curlを実行し、レスポンスデータを保存する
+                            $response  = curl_exec($ch);
+                            $user_arr = json_decode($response,true);
+                            // curlセッションを終了する
+                            curl_close($ch);
+ 
+                            //一時的なテーブルの作成
+                            pg_query("
+                            CREATE TEMP TABLE temp_user_table(
+                                user_id INTEGER,
+                                user_name TEXT
+                                )
+                            ");
+ 
+                            // 一時的なテーブルにユーザー情報を挿入
+                            foreach ($user_arr["data"] as $userData) {
+                                //var_dump($orderData);
+                                pg_query("
+                                    INSERT INTO temp_user_table(
+                                        user_id,
+                                        user_name
+                                    )
+                                    VALUES (
+                                        '{$userData["userId"]}',
+                                        '{$userData["familyName"]} {$userData["givenName"]}'
+                                    )
+                                ");
+                                }
+ 
+                            ////////////////////////////////////////////////////////////////////
+                            ////////////////////////////////////////////////////////////////////
+ 
+ 
                             // マスター情報取得クエリ
                             $sql_1 = 'SELECT
-                                car_id,car_name,car_no,garages,etc,creat_day,create_user_id,seat_of_number,use_display
-                                FROM cars
-                                WHERE un_useble_day IS NULL 
-                                ORDER BY display_no ASC;
+                                a.car_id,
+                                a.car_name,
+                                a.car_no,
+                                a.garages,
+                                a.etc,
+                                a.creat_day,
+                                a.create_user_id,
+                                a.seat_of_number,
+                                a.use_display,
+                                b.user_name
+                                FROM cars a
+                                LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id --一時的なユーザーテーブルと結合する
+                                WHERE a.un_useble_day IS NULL
+                                ORDER BY a.display_no ASC;
                             ';
-
+ 
                             // 実行
                             $result1 = pg_query($sql_1);
                             $MasterBookingData = pg_fetch_all($result1);
-
+ 
                             //オブジェクト配列
-                            $all_data = ['data' => ['MasterGarage' => $MasterBookingData] ]; 
-
-        
+                            $all_data = ['data' => ['MasterGarage' => $MasterBookingData] ];
+ 
+       
                             //クエリのコミット
                             pg_query($pg_conn,"COMMIT");
-    
-                        } 
+   
+                        }
                         catch (Exception $e) {
-    
+   
                             var_dump($ex);
-    
+   
                             // クエリのロールバック
                             pg_query($pg_conn,"ROLLBACK");
                             pg_close($pg_conn);
-    
+   
                         }
+ 
+                    break;
 
-                    break;    
 
                     // <summery>
                     // BookingGarage・マスター社有車情報入手
