@@ -475,7 +475,8 @@
                             // マスター情報取得クエリ
                             $sql = "UPDATE cars SET
                                 un_useble_day = '$today',
-                                un_useble_user_id = '$UserId'
+                                un_useble_user_id = '$UserId',
+                                display_no = 0
 
                                 WHERE car_id = '$MasterCarID'
                             ";
@@ -519,48 +520,67 @@
                     // <summery>
                     // マスター・車の番号を変更
                     // </summery>
-                    try {
-                        // トランザクション開始
-                        pg_query($pg_conn, "BEGIN");
-                    
-                        foreach ($SaveDataArray as $SaveData) {
-                            $CarId = $SaveData->Car_id;
-                            $DisplayNo = $SaveData->DisplayNo;
-                    
-                            // マスター情報取得クエリ
-                            $sql = "UPDATE cars SET display_no = '$DisplayNo' WHERE car_id = '$CarId'";
-                    
-                            // 実行
-                            $result1 = pg_query($pg_conn, $sql);
-                    
-                            if ($result1 === false) {
+                    case 'EditMasterCarDisplayNo':
+                        $allResult = array();
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+ 
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+ 
+                        try
+                        {
+                            //配列の為、ループさせた
+                            foreach ($SaveData as $i => $row) {
+                                $CarId = $row->Car_id;
+                                $DisplayNo = $row-> DisplayNo;
+ 
+                                // マスター情報取得クエリ
+                                $sql = "UPDATE cars SET
+                                    display_no = '$DisplayNo'
+                                    WHERE car_id = '$CarId'
+                                ";
+ 
+                                // 実行
+                                $result1 = pg_query($pg_conn, $sql);
+                                $allResult[$i] = $result1;
+                            }
+ 
+                            // 1つでも false が含まれていたら失敗とする
+                            if (in_array(false, $allResult, true)) {
+                                pg_query($pg_conn, "ROLLBACK");
                                 $all_data = [
                                     'status' => 0,
                                     'data' => [pg_last_error($pg_conn)],
-                                    'message' => $returnMessage
+                                    'message' => 'クエリ実行中に失敗しました'
                                 ];
-                                break;
                             }
+                            // 全てtrueの場合、成功
+                            else {
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+ 
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+ 
+                         
                         }
-                    
-                        // クエリ成功
-                        $all_data = [
-                            'status' => 1,
-                            'data' => [true],
-                            'message' => '登録成功'
-                        ];
-                    
-                        // コミット
-                        pg_query($pg_conn, "COMMIT");
-                    } catch (Exception $ex) {
-                        // エラーハンドリング
-                        var_dump($ex);
-                    
-                        // ロールバック
-                        pg_query($pg_conn, "ROLLBACK");
-                    }
+                        catch (Exception $ex) {
+   
+                            var_dump($ex);
+   
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+   
+                        }
+ 
                     break;
-                    
+
 
                 }                     
             }

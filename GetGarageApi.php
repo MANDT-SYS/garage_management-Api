@@ -109,7 +109,7 @@
                                 WHERE a.use_display = true AND a.un_useble_day IS NULL
                                 
 
-                                ORDER BY display_car_id ASC, b.start_time ASC;
+                                ORDER BY display_no ASC, b.start_time ASC;
                             ';
 
                             // $1 = $SelectDay  
@@ -312,7 +312,7 @@
                                 car_id,car_name,car_no,garages,etc,creat_day,create_user_id,seat_of_number
                                 FROM cars
                                 WHERE un_useble_day IS NULL 
-                                ORDER BY car_id ASC;
+                                ORDER BY display_no ASC;
                             ';
 
                             // 実行
