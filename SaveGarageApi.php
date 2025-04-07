@@ -329,6 +329,8 @@
                             $Garages = $SaveData->Garages;
                             $SeatOfNumber = $SaveData->SeatOfNumber;
                             $CreateUserId = $SaveData->createdUserId;
+                            $UseDisplay = $SaveData->Use_Display;
+
 
                             // マスター情報取得クエリ
                             $sql = "INSERT INTO cars (
@@ -338,7 +340,8 @@
                                 garages,
                                 creat_day,
                                 seat_of_number,
-                                create_user_id
+                                create_user_id,
+                                use_display
                                 )
                                 VALUES(
                                 '$CarName',
@@ -347,7 +350,8 @@
                                 '$Garages',
                                 '$today',
                                 '$SeatOfNumber',
-                                '$CreateUserId'
+                                '$CreateUserId',
+                                $UseDisplay
                                 )
                             ";
                             // 実行
