@@ -97,6 +97,7 @@
                                 a.etc,
                                 a.seat_of_number,
 
+                                -- Nullだったら、空白を入れる
                                 COALESCE(b.reserve_id, 0) as reserve_id,
                                 COALESCE(b.car_id, 0) as car_id,
                                 COALESCE(b.use_start_day, \'\') as use_start_day,
@@ -117,8 +118,13 @@
                                 AND b.cancel_day IS NULL
                                 AND b.use_start_day = $1
 
-                                WHERE a.use_display = true AND a.un_useble_day IS NULL
-                                
+                                WHERE
+                                 (a.use_display = true AND a.un_useble_day IS NULL) 
+                                     AND a.unlimited_day <= $1::timestamp
+                                     AND (
+                                            -- limited_day が NULL の場合は条件をスキップ、それ以外は比較
+                                            a.limited_day IS NULL OR a.limited_day >= $1::timestamp
+                                        )
 
                                 ORDER BY display_no ASC, display_car_id ASC, b.start_time ASC;
                             ';

@@ -330,36 +330,68 @@
                             $SeatOfNumber = $SaveData->SeatOfNumber;
                             $CreateUserId = $SaveData->createdUserId;
                             $UseDisplay = $SaveData->Use_Display;
-                            $UnLimited = $SaveData->unlimited_day;
-                            $Limited = $SaveData->limited_day;
+                            $UnLimited = date('Y-m-d', strtotime($SaveData->unlimited_day));
+
+                            // 使用制限日が存在する場合
+                            if (!empty($SaveData->limited_day)) {
+                                $Limited = date('Y-m-d', strtotime($SaveData->limited_day));
+
+                                // マスター情報取得クエリ
+                                $sql = "INSERT INTO cars (
+                                    car_name,
+                                    car_no,
+                                    etc,
+                                    garages,
+                                    creat_day,
+                                    seat_of_number,
+                                    create_user_id,
+                                    use_display,
+                                    unlimited_day,
+                                    limited_day
+                                    )
+                                    VALUES(
+                                    '$CarName',
+                                    '$CarNo',
+                                    '$ETC',
+                                    '$Garages',
+                                    '$today',
+                                    '$SeatOfNumber',
+                                    '$CreateUserId',
+                                    $UseDisplay,
+                                    '$UnLimited',
+                                    '$Limited'
+                                    )
+                                ";
+                            }
+                            else {
+
+                                // マスター情報取得クエリ
+                                $sql = "INSERT INTO cars (
+                                    car_name,
+                                    car_no,
+                                    etc,
+                                    garages,
+                                    creat_day,
+                                    seat_of_number,
+                                    create_user_id,
+                                    use_display,
+                                    unlimited_day
+                                    )
+                                    VALUES(
+                                    '$CarName',
+                                    '$CarNo',
+                                    '$ETC',
+                                    '$Garages',
+                                    '$today',
+                                    '$SeatOfNumber',
+                                    '$CreateUserId',
+                                    $UseDisplay,
+                                    '$UnLimited'
+                                    )
+                                ";
+                            }   
 
 
-                            // マスター情報取得クエリ
-                            $sql = "INSERT INTO cars (
-                                car_name,
-                                car_no,
-                                etc,
-                                garages,
-                                creat_day,
-                                seat_of_number,
-                                create_user_id,
-                                use_display,
-                                unlimited_day,
-                                limited_day
-                                )
-                                VALUES(
-                                '$CarName',
-                                '$CarNo',
-                                '$ETC',
-                                '$Garages',
-                                '$today',
-                                '$SeatOfNumber',
-                                '$CreateUserId',
-                                $UseDisplay,
-                                '$UnLimited',
-                                '$Limited'
-                                )
-                            ";
                             // 実行
                             $result1 = pg_query($pg_conn, $sql);
 
@@ -414,25 +446,49 @@
                             $CarNo = $SaveData->Car_no;
                             $ETC = $SaveData->ETC;
                             $Garages = $SaveData->Garages;
+                            $SeatOfNumber = $SaveData->SeatOfNumber;
                             $EditUserId = $SaveData->EditUserId;
                             $UseDisplay = $SaveData->Use_Display;
-                            $UnlimitedDay = $SaveData->UnLimitedDay;
-                            $LimitedDay = $SaveData->LimitedDay;
+                            $UnlimitedDay = date('Y-m-d', strtotime($SaveData->UnLimitedDay));
 
-                            // マスター情報取得クエリ
-                            $sql = "UPDATE cars SET
-                                car_name = '$CarName',
-                                car_no = '$CarNo',
-                                etc = '$ETC',
-                                garages = '$Garages',
-                                edit_day = '$today',
-                                edit_user_id = '$EditUserId',
-                                use_display = $UseDisplay,
-                                unlimited_day = '$UnlimitedDay',
-                                limited_day = '$LimitedDay'
+                            // 使用制限日が存在する場合
+                            if (!empty($SaveData->limitedDay)) {
+                                $LimitedDay = date('Y-m-d', strtotime($SaveData->limitedDay));
 
-                                WHERE car_id = '$CarId'
-                            ";
+                                // マスター情報取得クエリ
+                                $sql = "UPDATE cars SET
+                                    car_name = '$CarName',
+                                    car_no = '$CarNo',
+                                    etc = '$ETC',
+                                    garages = '$Garages',
+                                    seat_of_number = '$SeatOfNumber',
+                                    edit_day = '$today',
+                                    edit_user_id = '$EditUserId',
+                                    use_display = $UseDisplay,
+                                    unlimited_day = '$UnlimitedDay',
+                                    limited_day = '$LimitedDay'
+
+                                    WHERE car_id = '$CarId'
+                                ";
+                            }
+                            else {
+
+                                    // マスター情報取得クエリ
+                                    $sql = "UPDATE cars SET
+                                    car_name = '$CarName',
+                                    car_no = '$CarNo',
+                                    etc = '$ETC',
+                                    garages = '$Garages',
+                                    seat_of_number = '$SeatOfNumber',
+                                    edit_day = '$today',
+                                    edit_user_id = '$EditUserId',
+                                    use_display = $UseDisplay,
+                                    unlimited_day = '$UnlimitedDay',
+                                    limited_day = NULL
+
+                                    WHERE car_id = '$CarId'
+                                ";
+                            }
                             
 
                             // 実行
