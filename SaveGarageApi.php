@@ -330,6 +330,8 @@
                             $SeatOfNumber = $SaveData->SeatOfNumber;
                             $CreateUserId = $SaveData->createdUserId;
                             $UseDisplay = $SaveData->Use_Display;
+                            $UnLimited = $SaveData->unlimited_day;
+                            $Limited = $SaveData->limited_day;
 
 
                             // マスター情報取得クエリ
@@ -341,7 +343,9 @@
                                 creat_day,
                                 seat_of_number,
                                 create_user_id,
-                                use_display
+                                use_display,
+                                unlimited_day,
+                                limited_day
                                 )
                                 VALUES(
                                 '$CarName',
@@ -351,7 +355,9 @@
                                 '$today',
                                 '$SeatOfNumber',
                                 '$CreateUserId',
-                                $UseDisplay
+                                $UseDisplay,
+                                '$UnLimited',
+                                '$Limited'
                                 )
                             ";
                             // 実行
@@ -410,6 +416,8 @@
                             $Garages = $SaveData->Garages;
                             $EditUserId = $SaveData->EditUserId;
                             $UseDisplay = $SaveData->Use_Display;
+                            $UnlimitedDay = $SaveData->UnLimitedDay;
+                            $LimitedDay = $SaveData->LimitedDay;
 
                             // マスター情報取得クエリ
                             $sql = "UPDATE cars SET
@@ -419,7 +427,9 @@
                                 garages = '$Garages',
                                 edit_day = '$today',
                                 edit_user_id = '$EditUserId',
-                                use_display = $UseDisplay
+                                use_display = $UseDisplay,
+                                unlimited_day = '$UnlimitedDay',
+                                limited_day = '$LimitedDay'
 
                                 WHERE car_id = '$CarId'
                             ";
