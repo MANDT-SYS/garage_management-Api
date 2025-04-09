@@ -96,6 +96,9 @@
                                 a.garages,
                                 a.etc,
                                 a.seat_of_number,
+                                a.unlimited_day,
+                                a.limited_day,
+                                
 
                                 -- Nullだったら、空白を入れる
                                 COALESCE(b.reserve_id, 0) as reserve_id,
