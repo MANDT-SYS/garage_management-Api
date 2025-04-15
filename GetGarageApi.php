@@ -315,10 +315,8 @@
                                 pg_query($pg_conn,"ROLLBACK");
                                 pg_close($pg_conn);
                             }
-                     break;
+                    break;
                     
-
-                     
                     
                     // <summery>
                     // BookingGarage・マスター社有車情報入手
@@ -579,6 +577,156 @@
                             pg_close($pg_conn);
     
                         }
+
+                    break;
+
+                    // <summery>
+                    // マスター車情報入手(HistroySearch画面)
+                    // </summery>
+                    case 'GetMasterCarCategory':
+
+                        try
+                        {
+                            
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                car_id,
+                                car_name,
+                                car_no
+
+                                FROM cars 
+
+                                WHERE un_useble_day IS NULL
+                                ORDER BY car_id ASC
+                            ';
+             
+
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterData = pg_fetch_all($result1);
+
+                            $sql_2 = 'SELECT
+                            car_id,
+                            car_name,
+                            car_no
+
+                            FROM cars 
+
+                            WHERE un_useble_day IS NOT NULL
+                            ORDER BY car_id ASC
+                        ';
+
+                            // 実行
+                            $result2 = pg_query($sql_2);
+                            $DELETEMasterData = pg_fetch_all($result2);
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterData, 'DELETEMasterGarage' => $DELETEMasterData] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
+                    // 過去の予約履歴確認(HistroySearch画面)
+                    // </summery>
+                    case 'GetHistoryReserveInfo':
+
+                        $SelectCheckDataArray = $array_data->SerchHistory;
+
+                        try
+                        {
+                            $ForBellow = $SelectCheckDataArray->ForBellow;
+                            $PullCars = $SelectCheckDataArray->PullCars;
+                            $CarId = $SelectCheckDataArray->CarId;
+                            $StartDate = $SelectCheckDataArray->StartDate;
+                            $EndDate = $SelectCheckDataArray->EndDate;
+                            
+                            $conditions = ["a.cancel_day IS NULL"]; // ベース条件
+                            $params = []; // パラメータ配列
+                            $paramIndex = 1;
+                            
+                            // ForBellowがtrueなら日付フィルタを追加
+                            if ($ForBellow === false) {
+                                $conditions[] = "a.use_start_day >= $" . $paramIndex++;
+                                $params[] = $StartDate;
+                            
+                                $conditions[] = "a.use_start_day <= $" . $paramIndex++;
+                                $params[] = $EndDate;
+                            }
+                            
+                            // PullCarsが「全車種」以外なら車両フィルタを追加
+                            if ($PullCars !== "全車種") {
+                                $conditions[] = "b.car_id = $" . $paramIndex++;
+                                $params[] = $CarId;
+                            }
+                            
+                            // 条件を結合
+                            $whereClause = implode(" AND ", $conditions);
+                            
+                            // SQLを組み立て
+                            $sql_1 = "
+                            SELECT
+                                a.use_start_day,
+                                a.start_time,
+                                a.end_time,
+                                a.driver,
+                                a.place,
+                                a.number_of_people,
+                                a.luggage,
+                                a.memo,
+                                a.etc,
+                                a.created_user_id,
+                                b.car_name,
+                                b.car_no,
+                                b.garages
+                            FROM reserve a
+                            LEFT JOIN cars b USING(car_id)
+                            WHERE $whereClause
+                            ORDER BY display_no ASC, b.car_id ASC, a.use_start_day ASC;
+                            ";
+                            
+                            // 実行
+                            if ($PullCars == "全車種" && $ForBellow === false) {
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+                            }
+                            else{
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+                            }
+                            $ReserveBookingData = pg_fetch_all($result1);
+
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['ReserveHistoryData' => $ReserveBookingData] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
 
                     break;
                 }                     
