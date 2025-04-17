@@ -382,6 +382,7 @@
                                 a.use_display,
                                 a.unlimited_day,
                                 a.limited_day,
+                                a.new_mileage,
                                 b.user_name
                                 FROM cars a
                                 LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id --一時的なユーザーテーブルと結合する
@@ -649,6 +650,51 @@
 
                         try
                         {
+                            ////////////////////////////////////////////////////////////////////
+                            // ユーザー情報の取得と、一時的テーブルの作成 //////////////////////////
+                            // curlのセッションを初期化する
+                            $ch = curl_init();
+                            // curlのオプションを設定する
+                            $options = array(
+                            CURLOPT_URL => 'https://system.syowa.com/user-management/api/'.ConstData::API_VER.'/user',
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_HTTPHEADER => $getExternalHeaders,
+                            );
+                            curl_setopt_array($ch, $options);
+                            // curlを実行し、レスポンスデータを保存する
+                            $response  = curl_exec($ch);
+                            $user_arr = json_decode($response,true);
+                            // curlセッションを終了する
+                            curl_close($ch);
+ 
+                            //一時的なテーブルの作成
+                            pg_query("
+                            CREATE TEMP TABLE temp_user_table(
+                                user_id INTEGER,
+                                user_name TEXT
+                                )
+                            ");
+ 
+                            // 一時的なテーブルにユーザー情報を挿入
+                            foreach ($user_arr["data"] as $userData) {
+                                //var_dump($orderData);
+                                pg_query("
+                                    INSERT INTO temp_user_table(
+                                        user_id,
+                                        user_name
+                                    )
+                                    VALUES (
+                                        '{$userData["userId"]}',
+                                        '{$userData["familyName"]} {$userData["givenName"]}'
+                                    )
+                                ");
+                                }
+ 
+                            ////////////////////////////////////////////////////////////////////
+                            ////////////////////////////////////////////////////////////////////
+ 
+
+
                             $ForBellow = $SelectCheckDataArray->ForBellow;
                             $PullCars = $SelectCheckDataArray->PullCars;
                             $CarId = $SelectCheckDataArray->CarId;
@@ -690,10 +736,13 @@
                                 a.memo,
                                 a.etc,
                                 a.created_user_id,
+                                a.created_day,
                                 b.car_name,
                                 b.car_no,
-                                b.garages
+                                b.garages,
+                                c.user_name
                             FROM reserve a
+                            LEFT JOIN temp_user_table c ON a.created_user_id = c.user_id
                             LEFT JOIN cars b USING(car_id)
                             WHERE $whereClause
                             ORDER BY display_no ASC, b.car_id ASC, a.use_start_day ASC;

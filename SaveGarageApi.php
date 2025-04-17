@@ -438,9 +438,7 @@
                         // 現在の日時
                         $today = date('Y-m-d H:i:s');
 
-                        try
-                        {
-
+                        try {
                             $CarId = $SaveData->Car_ID;
                             $CarName = $SaveData->Car_name;
                             $CarNo = $SaveData->Car_no;
@@ -450,70 +448,82 @@
                             $EditUserId = $SaveData->EditUserId;
                             $UseDisplay = $SaveData->Use_Display;
                             $UnlimitedDay = date('Y-m-d', strtotime($SaveData->UnLimitedDay));
-
-                            // 使用制限日が存在する場合
-                            if (!empty($SaveData->limitedDay)) {
+                    
+                            $hasLimitedDay = !empty($SaveData->limitedDay); // 使用制限日が存在する場合
+                            $hasMileage    = !empty($SaveData->New_milage); // 走行距離が存在する場合
+                    
+                            if ($hasLimitedDay) {
                                 $LimitedDay = date('Y-m-d', strtotime($SaveData->limitedDay));
-
-                                // マスター情報取得クエリ
-                                $sql = "UPDATE cars SET
-                                    car_name = '$CarName',
-                                    car_no = '$CarNo',
-                                    etc = '$ETC',
-                                    garages = '$Garages',
-                                    seat_of_number = '$SeatOfNumber',
-                                    edit_day = '$today',
-                                    edit_user_id = '$EditUserId',
-                                    use_display = $UseDisplay,
-                                    unlimited_day = '$UnlimitedDay',
-                                    limited_day = '$LimitedDay'
-
-                                    WHERE car_id = '$CarId'
-                                ";
+                            } else {
+                                $LimitedDay = null;
                             }
-                            else {
-
-                                    // マスター情報取得クエリ
-                                    $sql = "UPDATE cars SET
-                                    car_name = '$CarName',
-                                    car_no = '$CarNo',
-                                    etc = '$ETC',
-                                    garages = '$Garages',
-                                    seat_of_number = '$SeatOfNumber',
-                                    edit_day = '$today',
-                                    edit_user_id = '$EditUserId',
-                                    use_display = $UseDisplay,
-                                    unlimited_day = '$UnlimitedDay',
-                                    limited_day = NULL
-
-                                    WHERE car_id = '$CarId'
-                                ";
+                    
+                            // ベースの UPDATE 文
+                            $sql = "UPDATE cars SET
+                                car_name = '$CarName',
+                                car_no = '$CarNo',
+                                etc = '$ETC',
+                                garages = '$Garages',
+                                seat_of_number = '$SeatOfNumber',
+                                edit_day = '$today',
+                                edit_user_id = '$EditUserId',
+                                use_display = $UseDisplay,
+                                unlimited_day = '$UnlimitedDay',
+                                limited_day = " . ($LimitedDay ? "'$LimitedDay'" : "NULL");
+                    
+                            // 走行距離があれば new_mileage も更新
+                            if ($hasMileage) {
+                                $NewMilage = $SaveData->New_milage;
+                                $sql .= ", new_mileage = '$NewMilage'";
                             }
-                            
-
-                            // 実行
+                    
+                            $sql .= " WHERE car_id = '$CarId'";
+                    
+                            // 走行距離履歴テーブルの登録も必要な場合
+                            if ($hasMileage) {
+                                $DifferenceMilage = $SaveData->Difference_milage;
+                    
+                                $sql2 = "INSERT INTO cars_mileage_history (
+                                    car_id,
+                                    mileage,
+                                    difference_mileage,
+                                    add_day,
+                                    add_user_id
+                                ) VALUES (
+                                    '$CarId',
+                                    '$NewMilage',
+                                    '$DifferenceMilage',
+                                    '$today',
+                                    '$EditUserId'
+                                )";
+                            }
+                    
+                            // --- 実行 ---
                             $result1 = pg_query($pg_conn, $sql);
-
-                             //クエリ失敗
-                            if ($result === false) {
-                                $all_data = [
-                                'status' => 0,
-                                'data' => [pg_last_error($pg_conn)],
-                                'message' => $returnMessage
-                                ];
+                    
+                            // 走行距離履歴も同時に保存
+                            if ($hasMileage && isset($sql2)) {
+                                $result2 = pg_query($pg_conn, $sql2);
                             }
-                            //クエリ成功
-                            else{
+                    
+                            // クエリ失敗時のチェック
+                            if ($result1 === false || (isset($result2) && $result2 === false)) {
+                                $all_data = [
+                                    'status' => 0,
+                                    'data' => [pg_last_error($pg_conn)],
+                                    'message' => '登録に失敗しました。'
+                                ];
+                            } else {
                                 $all_data = [
                                     'status' => 1,
                                     'data' => [true],
                                     'message' => '登録成功'
                                 ];
-    
-                                //コミット
-                                pg_query($pg_conn,"COMMIT");
+                    
+                                // コミット
+                                pg_query($pg_conn, "COMMIT");
                             }
-                        } 
+                        }
                         catch (Exception $ex) {
     
                             var_dump($ex);
