@@ -380,6 +380,7 @@
                                 a.create_user_id,
                                 a.seat_of_number,
                                 a.use_display,
+                                a.is_rental,
                                 a.unlimited_day,
                                 a.limited_day,
                                 a.new_mileage,

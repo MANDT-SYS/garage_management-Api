@@ -331,6 +331,7 @@
                             $CreateUserId = $SaveData->createdUserId;
                             $UseDisplay = $SaveData->Use_Display;
                             $UnLimited = date('Y-m-d', strtotime($SaveData->unlimited_day));
+                            $IsRental = $SaveData->IsRental;
 
                             // 使用制限日が存在する場合
                             if (!empty($SaveData->limited_day)) {
@@ -344,6 +345,8 @@
                                     garages,
                                     creat_day,
                                     seat_of_number,
+                                    is_rental,
+                                    new_mileage,
                                     create_user_id,
                                     use_display,
                                     unlimited_day,
@@ -356,6 +359,8 @@
                                     '$Garages',
                                     '$today',
                                     '$SeatOfNumber',
+                                    $IsRental,
+                                    0,
                                     '$CreateUserId',
                                     $UseDisplay,
                                     '$UnLimited',
@@ -373,6 +378,8 @@
                                     garages,
                                     creat_day,
                                     seat_of_number,
+                                    is_rental,
+                                    new_mileage,
                                     create_user_id,
                                     use_display,
                                     unlimited_day
@@ -384,6 +391,8 @@
                                     '$Garages',
                                     '$today',
                                     '$SeatOfNumber',
+                                    $IsRental,
+                                    0,
                                     '$CreateUserId',
                                     $UseDisplay,
                                     '$UnLimited'
@@ -447,6 +456,7 @@
                             $SeatOfNumber = $SaveData->SeatOfNumber;
                             $EditUserId = $SaveData->EditUserId;
                             $UseDisplay = $SaveData->Use_Display;
+                            $IsRental = $SaveData->IsRental;
                             $UnlimitedDay = date('Y-m-d', strtotime($SaveData->UnLimitedDay));
                     
                             $hasLimitedDay = !empty($SaveData->limitedDay); // 使用制限日が存在する場合
@@ -468,6 +478,7 @@
                                 edit_day = '$today',
                                 edit_user_id = '$EditUserId',
                                 use_display = $UseDisplay,
+                                is_rental = $IsRental,
                                 unlimited_day = '$UnlimitedDay',
                                 limited_day = " . ($LimitedDay ? "'$LimitedDay'" : "NULL");
                     

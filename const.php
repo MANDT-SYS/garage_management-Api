@@ -33,7 +33,7 @@
     
     
     // // 本番環境 ///////////////////////////
-    //当システム用DBの接続情報
+    // //当システム用DBの接続情報
     //  const DB_DATA = "host=localhost port=5432 dbname=GarageManagement user=postgres password=goodhandsm-and-t";
     // //メールシステム用DB
     // const MAIL_SYSTEM_DB_DATA = "host=localhost port=5432 dbname=mail_service user=postgres password=goodhandsm-and-t";
