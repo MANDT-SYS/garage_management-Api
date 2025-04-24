@@ -771,6 +771,114 @@
 
                     break;
 
+                    // <summery>
+                    // Cars・マスター新しいタイヤ情報を保存
+                    // </summery>
+                    case 'PurchaseTires':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+
+                            $CarId = $SaveData->CarId;
+                            $TireTypes = $SaveData->TireTypes;
+                            $PurchaseDate = date('Y-m-d', strtotime($SaveData->PurchaseDate));
+                            $TireSize = $SaveData->TireSize;
+                            $TireStorage = $SaveData->TireStorage;
+                            $Note = $SaveData->Note;
+                            $UserId = $SaveData->UserId;
+                            
+
+                            // ベースの UPDATE 文(マスター情報問い合わせ)
+                            $sql1 = "UPDATE cars_tires SET
+                                useble_change_day = $1,
+                                useble_change_user_id = $2
+                                WHERE car_id = $3 AND season_summer = $4 AND useble_change_day IS NULL
+                            ";
+
+                            // タイヤのマスター情報追加
+                            $sql2 = "INSERT INTO cars_tires (
+                                car_id,
+                                season_summer,
+                                tire_size,
+                                purchase_day,
+                                tire_storage,
+                                memo,
+                                creat_day,
+                                create_user_id
+                            ) VALUES (
+                                $1,
+                                $2,
+                                $3,
+                                $4,
+                                $5,
+                                $6,
+                                $7,
+                                $8
+                            )";
+
+                            // パラメータセット
+                            $params1 = [
+                                $today, 
+                                (int)$UserId,
+                                $CarId, 
+                                $TireTypes
+                            ];
+
+
+                            // --- 実行 ---
+                            $result1 = pg_query_params($pg_conn, $sql1, $params1);
+
+
+                            // パラメータセット
+                            $params2 = [
+                                (int)$CarId, 
+                                $TireTypes, 
+                                $TireSize,
+                                $PurchaseDate, 
+                                $TireStorage,
+                                $Note, 
+                                $today,
+                                (int)$UserId
+                            ];
+
+                            $result2 = pg_query_params($pg_conn, $sql2, $params2);
+                                
+                        
+                            // クエリ失敗時のチェック
+                            if ($result1 === false || $result2 === false) {
+                                $all_data = [
+                                    'status' => 0,
+                                    'data' => [pg_last_error($pg_conn)],
+                                    'message' => '登録に失敗しました。'
+                                    ];
+                                    pg_query($pg_conn, "ROLLBACK");
+                            } else {
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+                                pg_query($pg_conn, "COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
                 }                     
             }
         }
