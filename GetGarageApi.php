@@ -957,6 +957,60 @@
 
 
                     break;
+
+                    /// <summary>
+                    /// 現在のタイヤ情報を取得する
+                    /// </summary>
+                    case 'GetTiresInfo':
+
+                        try
+                        {
+
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                a.car_id,
+                                a.car_name,
+                                a.car_no,
+                                a.garages,
+                                a.use_season_summer_tires,
+                                a.is_rental,
+                                b.tire_id,
+                                b.tire_storage,
+                                b.tire_size,
+                                b.purchase_day,
+                                b.season_summer
+
+
+                                FROM cars a
+                                LEFT JOIN cars_tires b ON a.car_id = b.car_id
+                                WHERE un_useble_day IS NULL AND b.useble_change_day IS NULL
+                            ';
+ 
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterBookingData = pg_fetch_all($result1);
+ 
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterBookingData] ];
+ 
+       
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+   
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+
+                    break;
                 }                     
             }
         }

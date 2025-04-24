@@ -674,6 +674,102 @@
  
                     break;
 
+                    // <summery>
+                    // タイヤ情報_夏/冬タイヤ切り替え
+                    // </summery>
+                    case 'ChangeTires':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try {
+
+                            foreach ($SaveData as $item) {
+
+                                // トランザクション開始
+                                pg_query($pg_conn, "BEGIN");
+
+                                $CarId = $item->carId;
+                                $TireId = $item->TireId;
+                                $SelectSeason = $item->selectedSeason?'true':'false';
+                                $ChangeDate = $item->ChangeDate;
+                                $UserId = $item->UserId;
+
+
+                                // ベースの UPDATE 文(マスター情報問い合わせ)
+                                $sql1 = "UPDATE cars SET
+                                    use_season_summer_tires = $1,
+                                    edit_user_id = $2,
+                                    edit_day = $3
+                                    WHERE car_id = $4
+                                ";
+
+                                // タイヤ交換履歴問い合わせ
+                                $sql2 = "INSERT INTO cars_tires_change_history (
+                                    tire_id,
+                                    tire_change_day,
+                                    add_day,
+                                    add_user_id
+                                ) VALUES (
+                                    $1,
+                                    $2,
+                                    $3,
+                                    $4
+                                )";
+
+                                // パラメータセット
+                                $params1 = [
+                                    $SelectSeason, 
+                                    (int)$UserId, 
+                                    $today, 
+                                    $CarId
+                                ];
+
+                        
+                                // --- 実行 ---
+                                $result1 = pg_query_params($pg_conn, $sql1, $params1);
+
+
+                                // パラメータセット
+                                $params2 = [
+                                    (int)$TireId, 
+                                    $ChangeDate, 
+                                    $today, 
+                                    (int)$UserId
+                                ];
+
+                                $result2 = pg_query_params($pg_conn, $sql2, $params2);
+                                
+                        
+                                // クエリ失敗時のチェック
+                                if ($result1 === false || $result2 === false) {
+                                    $all_data = [
+                                        'status' => 0,
+                                        'data' => [pg_last_error($pg_conn)],
+                                        'message' => '登録に失敗しました。'
+                                    ];
+                                    pg_query($pg_conn, "ROLLBACK");
+                                } else {
+                                    $all_data = [
+                                        'status' => 1,
+                                        'data' => [true],
+                                        'message' => '登録成功'
+                                    ];
+                                    pg_query($pg_conn, "COMMIT");
+                                }
+                            }
+
+                        } catch (Exception $ex) {
+                            var_dump($ex);
+                            // クエリのロールバック
+                            pg_query($pg_conn, "ROLLBACK");
+                            pg_close($pg_conn);
+                        }
+
+                    break;
 
                 }                     
             }
