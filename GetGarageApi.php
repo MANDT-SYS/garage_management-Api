@@ -978,7 +978,7 @@
                                 b.tire_storage,
                                 b.tire_size,
                                 b.purchase_day,
-                                b.season_summer
+                                b.use_season_summer
 
 
                                 FROM cars a
@@ -1009,6 +1009,70 @@
     
                         }
 
+
+                    break;
+
+                    /// <sumeery>
+                    /// タイヤ情報とマスター情報を取得する
+                    /// </summary>
+                    case 'GetTiresEditData':
+
+                        try
+                        {
+                            
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                car_id,
+                                car_name,
+                                car_no
+
+                                FROM cars 
+
+                                WHERE un_useble_day IS NULL
+                                ORDER BY car_id ASC
+                            ';
+             
+
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterData = pg_fetch_all($result1);
+
+                            $sql_2 = 'SELECT
+                            car_id,
+                            tire_id,
+                            season_summer,
+                            tire_size,
+                            tire_storage,
+                            memo
+
+
+                            FROM cars_tires 
+
+                            WHERE useble_change_day IS NOT NULL
+                            ORDER BY car_id ASC
+                        ';
+
+                            // 実行
+                            $result2 = pg_query($sql_2);
+                            $TireEditData = pg_fetch_all($result2);
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterData, 'TireData' => $TireEditData] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
 
                     break;
 
