@@ -906,7 +906,6 @@
                                         create_user_id,
                                         car_id,
                                         fiscal_year,
-                                        activate,
                                         memo
                                         )
                                         VALUES(
@@ -915,7 +914,6 @@
                                         '$create_user_id',
                                         '$car_id',
                                         '$fiscal_year',
-                                        1,
                                         '$memo'
                                         )
                                     ";
@@ -947,8 +945,7 @@
                                 $delete_user_id = $SaveData->create_user_id;
                                 // マスター情報取得クエリ
                                 $sql = "UPDATE schedule SET
-                                delete_user_id = '$delete_user_id',
-                                activate = 0
+                                delete_user_id = '$delete_user_id'
                                 WHERE schedule_id = '$schedule_id'
                             ";
                                

@@ -1032,7 +1032,7 @@
                             fiscal_year,
                             memo
                             FROM schedule
-                            WHERE fiscal_year = $1 AND activate = 1
+                            WHERE fiscal_year = $1 AND delete_user_id IS NULL
                             ORDER BY car_id ASC';
  
                             // 実行（プレースホルダを使って安全に）
