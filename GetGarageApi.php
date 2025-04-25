@@ -1011,6 +1011,53 @@
 
 
                     break;
+
+                    // <summery>
+                    // スケジュール取得
+                    // </summery>
+                    case 'GetSchedule':
+                       
+                        // 保存させたいデータ
+                        $fiscal_year = $array_data->fiscal_year;
+                        try
+                        {
+                           
+                            //スケジュール取得クエリ
+                            $sql = 'SELECT
+                            schedule_id,
+                            title_id,
+                            date,
+                            create_user_id,
+                            car_id,
+                            fiscal_year,
+                            memo
+                            FROM schedule
+                            WHERE fiscal_year = $1 AND activate = 1
+                            ORDER BY car_id ASC';
+ 
+                            // 実行（プレースホルダを使って安全に）
+                            $result1 = pg_query_params($pg_conn, $sql, [$fiscal_year]);
+ 
+                            $scheduleData = pg_fetch_all($result1);
+ 
+                            //オブジェクト配列
+                            $all_data = ['data' =>  $scheduleData];
+ 
+       
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+                        }
+                        catch (Exception $ex) {
+   
+                            var_dump($ex);
+   
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+   
+                        }
+ 
+                    break;
                 }                     
             }
         }

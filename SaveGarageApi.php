@@ -879,6 +879,115 @@
 
                     break;
 
+                    // <summery>
+                    // スケジュールの追加
+                    // </summery>
+                    case 'scheduleSave':
+ 
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+ 
+                        try
+                        {
+                            $save_type = $SaveData->save_type;
+ 
+                            if($save_type == "新規登録"){
+                                $car_id = $SaveData->car_id;
+                                $create_user_id = $SaveData->create_user_id;
+                                $date = $SaveData->date;
+                                $title_id = $SaveData->title_id;
+                                $fiscal_year = $SaveData->fiscal_year;
+                                $memo = $SaveData->memo;
+                           
+                                    // マスター情報取得クエリ
+                                    $sql = "INSERT INTO schedule (
+                                        title_id,
+                                        date,
+                                        create_user_id,
+                                        car_id,
+                                        fiscal_year,
+                                        activate,
+                                        memo
+                                        )
+                                        VALUES(
+                                        '$title_id',
+                                        '$date',
+                                        '$create_user_id',
+                                        '$car_id',
+                                        '$fiscal_year',
+                                        1,
+                                        '$memo'
+                                        )
+                                    ";
+                               
+                                // 実行
+                                $result = pg_query($pg_conn, $sql);
+                            }
+                            if($save_type == "編集"){
+                                $schedule_id = $SaveData->schedule_id;
+                                $edit_user_id = $SaveData->create_user_id;
+                                $date = $SaveData->date;
+                                $title_id = $SaveData->title_id;
+                                $memo = $SaveData->memo;
+                           
+                                    // マスター情報取得クエリ
+                                    $sql = "UPDATE schedule SET
+                                        title_id = '$title_id',
+                                        date = '$date',
+                                        edit_user_id = '$edit_user_id',
+                                        memo = '$memo'
+                                        WHERE schedule_id = '$schedule_id'
+                                    ";
+                               
+                                // 実行
+                                $result = pg_query($pg_conn, $sql);
+                            }
+                            if($save_type == "削除"){
+                                $schedule_id = $SaveData->schedule_id;
+                                $delete_user_id = $SaveData->create_user_id;
+                                // マスター情報取得クエリ
+                                $sql = "UPDATE schedule SET
+                                delete_user_id = '$delete_user_id',
+                                activate = 0
+                                WHERE schedule_id = '$schedule_id'
+                            ";
+                               
+                                // 実行
+                                $result = pg_query($pg_conn, $sql);
+                            }
+ 
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => $returnMessage
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '保存成功'
+                                ];
+   
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+                        }
+                        catch (Exception $ex) {
+   
+                            var_dump($ex);
+   
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+   
+                        }
+ 
+                    break;
+
                 }                     
             }
         }
