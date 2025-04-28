@@ -771,7 +771,7 @@
 
                     break;
 
-                    // <summery>
+                     // <summery>
                     // Cars・マスター新しいタイヤ情報を保存
                     // </summery>
                     case 'PurchaseTires':
@@ -785,8 +785,11 @@
                         try
                         {
 
+                            // トランザクション開始
+                            pg_query($pg_conn, "BEGIN");
+
                             $CarId = $SaveData->CarId;
-                            $TireTypes = $SaveData->TireTypes;
+                            $TireTypes = ($SaveData->TireTypes === "true") ? true : false;
                             $PurchaseDate = date('Y-m-d', strtotime($SaveData->PurchaseDate));
                             $TireSize = $SaveData->TireSize;
                             $TireStorage = $SaveData->TireStorage;
@@ -798,13 +801,13 @@
                             $sql1 = "UPDATE cars_tires SET
                                 useble_change_day = $1,
                                 useble_change_user_id = $2
-                                WHERE car_id = $3 AND season_summer = $4 AND useble_change_day IS NULL
+                                WHERE car_id = $3 AND use_season_summer = $4 AND useble_change_day IS NULL
                             ";
 
                             // タイヤのマスター情報追加
                             $sql2 = "INSERT INTO cars_tires (
                                 car_id,
-                                season_summer,
+                                use_season_summer,
                                 tire_size,
                                 purchase_day,
                                 tire_storage,
@@ -865,6 +868,91 @@
                                     'message' => '登録成功'
                                 ];
                                 pg_query($pg_conn, "COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
+                    // Cars・マスター新しいタイヤ情報を保存
+                    // </summery>
+                    case 'PurchaseEditTires':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+
+                            $TireId = $SaveData->TireId;
+                            $CarId = $SaveData->CarId;
+                            $TireTypes = ($SaveData->TireTypes === "true") ? true : false;
+                            $PurchaseDate = date('Y-m-d', strtotime($SaveData->PurchaseDate));
+                            $TireSize = $SaveData->TireSize;
+                            $TireStorage = $SaveData->TireStorage;
+                            $Note = $SaveData->Note;
+                            $UserId = $SaveData->UserId;
+                            
+
+                            // ベースの UPDATE 文(マスター情報問い合わせ)
+                            $sql = "UPDATE cars_tires SET
+                                purchase_day = $4,
+                                tire_size = $5,
+                                tire_storage = $6,
+                                memo = $7,
+                                edit_day = $8,
+                                edit_user_id = $9
+                                WHERE tire_id = $1 AND car_id = $2 AND use_season_summer = $3 AND useble_change_day IS NULL
+                            ";
+
+                            // パラメータセット
+                            $params = [
+                                $TireId,
+                                $CarId, 
+                                $TireTypes,
+                                $PurchaseDate, 
+                                $TireSize,
+                                $TireStorage,
+                                $Note, 
+                                $today,
+                                (int)$UserId
+                            ];
+
+
+                            // --- 実行 ---
+                            $result = pg_query_params($pg_conn, $sql, $params);
+
+
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => $returnMessage
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+    
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
                             }
                         } 
                         catch (Exception $ex) {
