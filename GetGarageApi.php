@@ -1040,15 +1040,16 @@
                             $sql_2 = 'SELECT
                             car_id,
                             tire_id,
-                            season_summer,
+                            use_season_summer,
                             tire_size,
                             tire_storage,
+                            purchase_day,
                             memo
 
 
                             FROM cars_tires 
 
-                            WHERE useble_change_day IS NOT NULL
+                            WHERE useble_change_day IS NULL
                             ORDER BY car_id ASC
                         ';
 
