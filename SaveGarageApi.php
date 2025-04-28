@@ -771,7 +771,7 @@
 
                     break;
 
-                    // <summery>
+                     // <summery>
                     // Cars・マスター新しいタイヤ情報を保存
                     // </summery>
                     case 'PurchaseTires':
@@ -785,8 +785,11 @@
                         try
                         {
 
+                            // トランザクション開始
+                            pg_query($pg_conn, "BEGIN");
+
                             $CarId = $SaveData->CarId;
-                            $TireTypes = $SaveData->TireTypes;
+                            $TireTypes = ($SaveData->TireTypes === "true") ? true : false;
                             $PurchaseDate = date('Y-m-d', strtotime($SaveData->PurchaseDate));
                             $TireSize = $SaveData->TireSize;
                             $TireStorage = $SaveData->TireStorage;
@@ -798,13 +801,13 @@
                             $sql1 = "UPDATE cars_tires SET
                                 useble_change_day = $1,
                                 useble_change_user_id = $2
-                                WHERE car_id = $3 AND season_summer = $4 AND useble_change_day IS NULL
+                                WHERE car_id = $3 AND use_season_summer = $4 AND useble_change_day IS NULL
                             ";
 
                             // タイヤのマスター情報追加
                             $sql2 = "INSERT INTO cars_tires (
                                 car_id,
-                                season_summer,
+                                use_season_summer,
                                 tire_size,
                                 purchase_day,
                                 tire_storage,
@@ -880,80 +883,169 @@
                     break;
 
                     // <summery>
-                    // スケジュールの追加
+                    // Cars・マスター新しいタイヤ情報を保存
+                    // </summery>
+                    case 'PurchaseEditTires':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+
+                            $TireId = $SaveData->TireId;
+                            $CarId = $SaveData->CarId;
+                            $TireTypes = ($SaveData->TireTypes === "true") ? true : false;
+                            $PurchaseDate = date('Y-m-d', strtotime($SaveData->PurchaseDate));
+                            $TireSize = $SaveData->TireSize;
+                            $TireStorage = $SaveData->TireStorage;
+                            $Note = $SaveData->Note;
+                            $UserId = $SaveData->UserId;
+                            
+
+                            // ベースの UPDATE 文(マスター情報問い合わせ)
+                            $sql = "UPDATE cars_tires SET
+                                purchase_day = $4,
+                                tire_size = $5,
+                                tire_storage = $6,
+                                memo = $7,
+                                edit_day = $8,
+                                edit_user_id = $9
+                                WHERE tire_id = $1 AND car_id = $2 AND use_season_summer = $3 AND useble_change_day IS NULL
+                            ";
+
+                            // パラメータセット
+                            $params = [
+                                $TireId,
+                                $CarId, 
+                                $TireTypes,
+                                $PurchaseDate, 
+                                $TireSize,
+                                $TireStorage,
+                                $Note, 
+                                $today,
+                                (int)$UserId
+                            ];
+
+
+                            // --- 実行 ---
+                            $result = pg_query_params($pg_conn, $sql, $params);
+
+
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => $returnMessage
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+    
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
+                    // スケジュール
+                    // 予定の登録・編集・削除
                     // </summery>
                     case 'scheduleSave':
  
                         // 保存させたいデータ
                         $SaveData = $array_data -> SaveData;
- 
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
                         try
                         {
                             $save_type = $SaveData->save_type;
  
                             if($save_type == "新規登録"){
+                                $date = $SaveData->date;
+                                $title_id = $SaveData->title_id;
+                                $memo = $SaveData->memo;
                                 $car_id = $SaveData->car_id;
-                                $create_user_id = $SaveData->create_user_id;
-                                $date = $SaveData->date;
-                                $title_id = $SaveData->title_id;
                                 $fiscal_year = $SaveData->fiscal_year;
-                                $memo = $SaveData->memo;
+                                $create_user_id = $SaveData->user_id;
                            
-                                    // マスター情報取得クエリ
-                                    $sql = "INSERT INTO schedule (
-                                        title_id,
-                                        date,
-                                        create_user_id,
-                                        car_id,
-                                        fiscal_year,
-                                        activate,
-                                        memo
-                                        )
-                                        VALUES(
-                                        '$title_id',
-                                        '$date',
-                                        '$create_user_id',
-                                        '$car_id',
-                                        '$fiscal_year',
-                                        1,
-                                        '$memo'
-                                        )
-                                    ";
-                               
+                                // マスター情報取得クエリ
+                                $sql = "INSERT INTO schedule (
+                                    date, title_id, memo, car_id, fiscal_year, create_day, create_user_id
+                                ) VALUES (
+                                    $1, $2, $3, $4, $5, $6, $7
+                                )";
+                                $params = [$date, $title_id, $memo, $car_id, $fiscal_year, $today, $create_user_id];
+
                                 // 実行
-                                $result = pg_query($pg_conn, $sql);
+                                $result = pg_query_params($pg_conn, $sql, $params);
                             }
-                            if($save_type == "編集"){
+                            else if($save_type == "編集"){
                                 $schedule_id = $SaveData->schedule_id;
-                                $edit_user_id = $SaveData->create_user_id;
                                 $date = $SaveData->date;
                                 $title_id = $SaveData->title_id;
                                 $memo = $SaveData->memo;
-                           
-                                    // マスター情報取得クエリ
-                                    $sql = "UPDATE schedule SET
-                                        title_id = '$title_id',
-                                        date = '$date',
-                                        edit_user_id = '$edit_user_id',
-                                        memo = '$memo'
-                                        WHERE schedule_id = '$schedule_id'
-                                    ";
-                               
-                                // 実行
-                                $result = pg_query($pg_conn, $sql);
-                            }
-                            if($save_type == "削除"){
-                                $schedule_id = $SaveData->schedule_id;
-                                $delete_user_id = $SaveData->create_user_id;
+                                $edit_user_id = $SaveData->user_id;
                                 // マスター情報取得クエリ
                                 $sql = "UPDATE schedule SET
-                                delete_user_id = '$delete_user_id',
-                                activate = 0
-                                WHERE schedule_id = '$schedule_id'
-                            ";
-                               
+                                        date = $1,
+                                        title_id = $2,
+                                        memo = $3,
+                                        edit_day = $4,
+                                        edit_user_id = $5
+                                        WHERE schedule_id = $6";
+
+                                $params = [
+                                $date,
+                                $title_id,
+                                $memo,
+                                $today,
+                                $edit_user_id,
+                                $schedule_id
+                                ];
+
                                 // 実行
-                                $result = pg_query($pg_conn, $sql);
+                                $result = pg_query_params($pg_conn, $sql, $params);
+
+                            }
+                            else{//$save_type == "削除"
+                                $schedule_id = $SaveData->schedule_id;
+                                $delete_user_id = $SaveData->user_id;
+                                // マスター情報取得クエリ
+                                $sql = "UPDATE schedule SET
+                                delete_day = $1,
+                                delete_user_id = $2,
+                                WHERE schedule_id = $3
+                                ";
+                               $params = [
+                                $today,
+                                $delete_user_id,
+                                $schedule_id
+                                ];
+
+                                // 実行
+                                $result = pg_query_params($pg_conn, $sql, $params);
                             }
  
                              //クエリ失敗
@@ -961,7 +1053,114 @@
                                 $all_data = [
                                 'status' => 0,
                                 'data' => [pg_last_error($pg_conn)],
-                                'message' => $returnMessage
+                                'message' => '保存エラー'
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '保存成功'
+                                ];
+   
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+                        }
+                        catch (Exception $ex) {
+   
+                            var_dump($ex);
+   
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+   
+                        }
+ 
+                    break;
+
+                    // <summery>
+                    // スケジュール
+                    // 予定タイトルの登録・編集・削除
+                    // </summery>
+                    case 'scheduleTitleSave':
+ 
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+                        try
+                        {
+                            $save_type = $SaveData->save_type;
+ 
+                            if($save_type == "追加"){
+                                $title_name = $SaveData->title_name;
+                                $title_color = $SaveData->title_color;
+                                $create_user_id = $SaveData->user_id;
+                           
+                                // マスター情報取得クエリ
+                                $sql = "INSERT INTO schedule_title (
+                                    title_name, title_color, create_day,create_user_id
+                                ) VALUES (
+                                    $1, $2, $3, $4
+                                )";
+                                $params = [$title_name, $title_color,$today, $create_user_id];
+
+                                // 実行
+                                $result = pg_query_params($pg_conn, $sql, $params);
+                            }
+                            else if($save_type == "編集"){
+                                $title_id = $SaveData->title_id;
+                                $title_name = $SaveData->title_name;
+                                $title_color = $SaveData->title_color;
+                                $edit_user_id = $SaveData->user_id;
+                                // マスター情報取得クエリ
+                                $sql = "UPDATE schedule_title SET
+                                        title_name = $1,
+                                        title_color = $2,
+                                        edit_day = $3,
+                                        edit_user_id = $4
+                                        WHERE title_id = $5";
+
+                                $params = [
+                                $title_name,
+                                $title_color,
+                                $today,
+                                $edit_user_id,
+                                $title_id
+                                ];
+
+                                // 実行
+                                $result = pg_query_params($pg_conn, $sql, $params);
+
+                            }
+                            else{//$save_type == "削除"
+                                $title_id = $SaveData->title_id;
+                                $delete_user_id = $SaveData->user_id;
+                                // マスター情報取得クエリ
+                                $sql = "UPDATE schedule_title SET
+                                delete_day = $1,
+                                delete_user_id = $2,
+                                WHERE schedule_id = $3
+                                ";
+                               $params = [
+                                $today,
+                                $delete_user_id,
+                                $title_id
+                                ];
+
+                                // 実行
+                                $result = pg_query_params($pg_conn, $sql, $params);
+                            }
+ 
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => '保存エラー'
                                 ];
                             }
                             //クエリ成功
