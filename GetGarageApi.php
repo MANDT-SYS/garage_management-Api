@@ -1077,12 +1077,14 @@
                     break;
 
                     // <summery>
-                    // スケジュール取得
+                    // スケジュール
+                    // 予定取得
                     // </summery>
                     case 'GetSchedule':
                        
-                        // 保存させたいデータ
+                        // 取得したい年度
                         $fiscal_year = $array_data->fiscal_year;
+
                         try
                         {
                            
@@ -1091,12 +1093,11 @@
                             schedule_id,
                             title_id,
                             date,
-                            create_user_id,
                             car_id,
                             fiscal_year,
                             memo
                             FROM schedule
-                            WHERE fiscal_year = $1 AND delete_user_id IS NULL
+                            WHERE fiscal_year = $1 AND delete_day IS NULL
                             ORDER BY car_id ASC';
  
                             // 実行（プレースホルダを使って安全に）
@@ -1122,6 +1123,49 @@
                         }
  
                     break;
+
+                    // <summery>
+                    // スケジュール
+                    // 予定タイトル取得
+                    // </summery>
+                    case 'GetScheduleTitle':
+                        try
+                        {
+                           
+                            //スケジュール取得クエリ
+                            $sql = 'SELECT
+                            title_id,
+                            title_name,
+                            title_color,
+                            delete_day
+                            FROM schedule_title
+                            --WHERE delete_day IS NULL
+                            ORDER BY title_id ASC';
+ 
+                            // 実行（プレースホルダを使って安全に）
+                            $result1 = pg_query($pg_conn, $sql);
+ 
+                            $scheduleData = pg_fetch_all($result1);
+ 
+                            //オブジェクト配列
+                            $all_data = ['data' =>  $scheduleData];
+ 
+       
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+                        }
+                        catch (Exception $ex) {
+   
+                            var_dump($ex);
+   
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+   
+                        }
+ 
+                    break;
+                    
                 }                     
             }
         }
