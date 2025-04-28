@@ -771,7 +771,7 @@
 
                     break;
 
-                     // <summery>
+                    // <summery>
                     // Cars・マスター新しいタイヤ情報を保存
                     // </summery>
                     case 'PurchaseTires':
@@ -789,7 +789,7 @@
                             pg_query($pg_conn, "BEGIN");
 
                             $CarId = $SaveData->CarId;
-                            $TireTypes = ($SaveData->TireTypes === "true") ? true : false;
+                            $TireTypes = ($SaveData->TireTypes === "true") ? 'true' : 'false';
                             $PurchaseDate = date('Y-m-d', strtotime($SaveData->PurchaseDate));
                             $TireSize = $SaveData->TireSize;
                             $TireStorage = $SaveData->TireStorage;
@@ -898,7 +898,7 @@
 
                             $TireId = $SaveData->TireId;
                             $CarId = $SaveData->CarId;
-                            $TireTypes = ($SaveData->TireTypes === "true") ? true : false;
+                            $TireTypes = ($SaveData->TireTypes === "true") ? 'true' : 'false';
                             $PurchaseDate = date('Y-m-d', strtotime($SaveData->PurchaseDate));
                             $TireSize = $SaveData->TireSize;
                             $TireStorage = $SaveData->TireStorage;
