@@ -1078,6 +1078,165 @@
                     break;
 
                     // <summery>
+                    // 過去のタイヤ交換情報を検索
+                    // </summery>
+                    case 'GetTiresHistorySearchData':
+
+                        $SelectCheckDataArray = $array_data->SerchHistory;
+
+                        try
+                        {
+                            ////////////////////////////////////////////////////////////////////
+                            // ユーザー情報の取得と、一時的テーブルの作成 //////////////////////////
+                            // curlのセッションを初期化する
+                            $ch = curl_init();
+                            // curlのオプションを設定する
+                            $options = array(
+                            CURLOPT_URL => 'https://system.syowa.com/user-management/api/'.ConstData::API_VER.'/user',
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_HTTPHEADER => $getExternalHeaders,
+                            );
+                            curl_setopt_array($ch, $options);
+                            // curlを実行し、レスポンスデータを保存する
+                            $response  = curl_exec($ch);
+                            $user_arr = json_decode($response,true);
+                            // curlセッションを終了する
+                            curl_close($ch);
+ 
+                            //一時的なテーブルの作成
+                            pg_query("
+                            CREATE TEMP TABLE temp_user_table(
+                                user_id INTEGER,
+                                user_name TEXT
+                                )
+                            ");
+ 
+                            // 一時的なテーブルにユーザー情報を挿入
+                            foreach ($user_arr["data"] as $userData) {
+                                //var_dump($orderData);
+                                pg_query("
+                                    INSERT INTO temp_user_table(
+                                        user_id,
+                                        user_name
+                                    )
+                                    VALUES (
+                                        '{$userData["userId"]}',
+                                        '{$userData["familyName"]} {$userData["givenName"]}'
+                                    )
+                                ");
+                                }
+ 
+                            ////////////////////////////////////////////////////////////////////
+                            ////////////////////////////////////////////////////////////////////
+ 
+
+
+                            $ForBellow = $SelectCheckDataArray->ForBellow;
+                            $PullCars = $SelectCheckDataArray->PullCars;
+                            $CarId = $SelectCheckDataArray->CarId;
+                            $StartDate = $SelectCheckDataArray->StartDate;
+                            $EndDate = $SelectCheckDataArray->EndDate;
+                            $CheckDate = $SelectCheckDataArray->CheckDate;
+                            
+                            $conditions = ["create_tires.car_id IS NOT NULL"]; // ベース条件(この条件はSQLの為適当医に入れる)
+                            $params = []; // パラメータ配列
+                            $paramIndex = 1;
+                            
+                            // ForBellowがtrueなら日付フィルタを追加(購入日ベースで検索)
+                            if ($ForBellow === false && $CheckDate === "購入日") {
+                                $conditions[] = "create_tires.purchase_day >= $" . $paramIndex++;
+                                $params[] = $StartDate;
+                            
+                                $conditions[] = "create_tires.purchase_day <= $" . $paramIndex++;
+                                $params[] = $EndDate;
+                            }
+
+                            // ForBellowがtrueなら日付フィルタを追加(交換日ベースで検索)
+                            if ($ForBellow === false && $CheckDate === "交換日") {
+                                $conditions[] = "create_tires.useble_change_day >= $" . $paramIndex++;
+                                $params[] = $StartDate;
+                            
+                                $conditions[] = "create_tires.useble_change_day <= $" . $paramIndex++;
+                                $params[] = $EndDate;
+                            }
+                            
+                            // PullCarsが「全車種」以外なら車両フィルタを追加
+                            if ($PullCars !== "全車種") {
+                                $conditions[] = "b.car_id = $" . $paramIndex++;
+                                $params[] = $CarId;
+                            }
+                            
+                            
+                            // 条件を結合
+                            $whereClause = implode(" AND ", $conditions);
+                            
+                            // SQLを組み立て
+                            $sql_1 = "
+                            SELECT
+
+                                a.tire_change_day,
+                                a.add_day,
+                                c.user_name AS change_user_name,
+                                create_tires.tire_size,
+                                create_tires.tire_storage,
+                                create_tires.purchase_day,
+                                create_tires.memo,
+                                create_tires.useble_change_day,
+                                create_tires.use_season_summer,
+                                d.user_name AS purchase_user_name,
+                                create_tires.car_name,
+                                create_tires.car_no,
+                                create_tires.garages
+
+                            FROM cars_tires_change_history a
+                            LEFT JOIN 
+                            (SELECT
+                                a.car_id, a.tire_id,a.tire_size, a.tire_storage, a.purchase_day, a.memo, a.useble_change_day, a.useble_change_user_id, a.use_season_summer,
+                                b.car_name, b.car_no, b.garages
+                             FROM
+                              cars_tires a 
+                             LEFT JOIN cars b USING(car_id)
+                            )  create_tires USING(tire_id)
+
+                            LEFT JOIN temp_user_table c ON a.add_user_id = c.user_id
+                            LEFT JOIN temp_user_table d ON create_tires.useble_change_user_id = d.user_id
+                            
+                            WHERE $whereClause
+                            ORDER BY create_tires.car_id ASC;
+                            ";
+                            
+                            // 実行
+                            if ($PullCars == "全車種" && $ForBellow === false) {
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+                            }
+                            else{
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+                            }
+                            $TireHistoryData = pg_fetch_all($result1);
+
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['TireHistoryDatas' => $TireHistoryData] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+
+                    break;
+
+                    // <summery>
                     // スケジュール
                     // 予定取得
                     // </summery>
