@@ -795,9 +795,17 @@
                             $TireStorage = $SaveData->TireStorage;
                             $Note = $SaveData->Note;
                             $UserId = $SaveData->UserId;
-                            
 
-                            // ベースの UPDATE 文(マスター情報問い合わせ)
+
+                            // ベースの UPDATE 文(社有車・マスター情報問い合わせ)
+                            $sqlZ = "UPDATE cars SET
+                                use_season_summer_tires = $1,
+                                edit_day = $2,
+                                edit_user_id = $3
+                                WHERE car_id = $4 AND use_season_summer_tires = $5 AND un_useble_day IS NULL
+                            ";
+
+                            // ベースの UPDATE 文(タイヤ・マスター情報問い合わせ)
                             $sql1 = "UPDATE cars_tires SET
                                 useble_change_day = $1,
                                 useble_change_user_id = $2
@@ -825,7 +833,22 @@
                                 $8
                             )";
 
-                            // パラメータセット
+                            
+                            // パラメータセット(社有車情報・変更)
+                            $paramsZ = [
+                                null, 
+                                $today, 
+                                (int)$UserId,
+                                $CarId, 
+                                $TireTypes
+                            ];
+
+
+                            // --- 実行 ---
+                            $resultZ = pg_query_params($pg_conn, $sqlZ, $paramsZ);
+
+
+                            // パラメータセット(タイヤマスター・変更)
                             $params1 = [
                                 $today, 
                                 (int)$UserId,
@@ -838,7 +861,7 @@
                             $result1 = pg_query_params($pg_conn, $sql1, $params1);
 
 
-                            // パラメータセット
+                            // パラメータセット(タイヤマスター・追加)
                             $params2 = [
                                 (int)$CarId, 
                                 $TireTypes, 
@@ -850,11 +873,12 @@
                                 (int)$UserId
                             ];
 
+                            // --- 実行 ---
                             $result2 = pg_query_params($pg_conn, $sql2, $params2);
                                 
                         
                             // クエリ失敗時のチェック
-                            if ($result1 === false || $result2 === false) {
+                            if ($resultZ === false ||$result1 === false || $result2 === false) {
                                 $all_data = [
                                     'status' => 0,
                                     'data' => [pg_last_error($pg_conn)],
