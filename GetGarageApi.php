@@ -1186,13 +1186,14 @@
                                 d.user_name AS purchase_user_name,
                                 create_tires.car_name,
                                 create_tires.car_no,
-                                create_tires.garages
+                                create_tires.garages,
+                                create_tires.is_rental
 
                             FROM cars_tires_change_history a
                             LEFT JOIN 
                             (SELECT
-                                a.car_id, a.tire_id,a.tire_size, a.tire_storage, a.purchase_day, a.memo, a.useble_change_day, a.useble_change_user_id, a.use_season_summer,
-                                b.car_name, b.car_no, b.garages
+                                a.car_id, a.tire_id,a.tire_size, a.tire_storage, a.purchase_day, a.memo, a.useble_change_day, a.useble_change_user_id, a.use_season_summer, 
+                                b.car_name, b.car_no, b.garages, b.is_rental
                              FROM
                               cars_tires a 
                              LEFT JOIN cars b USING(car_id)
