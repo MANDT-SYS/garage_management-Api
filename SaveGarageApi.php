@@ -907,7 +907,7 @@
                     break;
 
                     // <summery>
-                    // Cars・マスター新しいタイヤ情報を保存
+                    // Cars・変更するタイヤ情報を保存
                     // </summery>
                     case 'PurchaseEditTires':
 
@@ -1020,13 +1020,15 @@
                                 next_check_car_day,
                                 request_check_place,
                                 create_day,
-                                create_user_id
+                                create_user_id,
+                                car_id
                             ) VALUES (
                                 $1,
                                 $2,
                                 $3,
                                 $4,
-                                $5
+                                $5,
+                                $6
                             )
                             RETURNING cars_check_list_id;";
 
@@ -1036,7 +1038,8 @@
                                 $NextCheckCarDay, 
                                 $RequestCheckPlace,
                                 $today,
-                                (int)$UserId
+                                (int)$UserId,
+                                $CarId
                             ];
 
                             // --- 実行 ---
@@ -1084,6 +1087,83 @@
                                     'message' => '登録成功'
                                 ];
                                 pg_query($pg_conn, "COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
+                    // 変更する車検情報を保存
+                    // </summery>
+                    case 'CheckCarEditdate':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+                            $CarId = $SaveData->CarId;
+                            $CheckListId = $SaveData->CheckListId;
+                            $RequestCheckPlace = $SaveData->request_Check_Place;
+                            $NextCheckCarDay = date('Y-m-d', strtotime($SaveData->NextCheckCarDay));
+                            $CheckCarDay = date('Y-m-d', strtotime($SaveData->CheckCarDay));
+                            $UserId = $SaveData->UserId;
+
+                            // ベースの UPDATE 文(マスター情報問い合わせ)
+                            $sql = "UPDATE cars_check_list SET
+                                check_car_day = $1,
+                                next_check_car_day = $2,
+                                request_check_place = $3,
+                                edit_day = $4,
+                                edit_user_id = $5
+                                WHERE cars_check_list_id = $6
+                            ";
+
+                            // パラメータセット
+                            $params = [
+                                $CheckCarDay, 
+                                $NextCheckCarDay, 
+                                $RequestCheckPlace,
+                                $today,
+                                (int)$UserId,
+                                (int)$CheckListId,
+                            ];
+
+
+                            // --- 実行 ---
+                            $result = pg_query_params($pg_conn, $sql, $params);
+
+
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => $returnMessage
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+    
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
                             }
                         } 
                         catch (Exception $ex) {
