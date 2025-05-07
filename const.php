@@ -32,7 +32,7 @@
   class ConstData{
     
     
-    // // 本番環境 ///////////////////////////
+    // 本番環境 ///////////////////////////
     // //当システム用DBの接続情報
     //  const DB_DATA = "host=localhost port=5432 dbname=GarageManagement user=postgres password=goodhandsm-and-t";
     // //メールシステム用DB

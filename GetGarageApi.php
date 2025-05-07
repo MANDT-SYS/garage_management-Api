@@ -1285,6 +1285,57 @@
  
                     break;
 
+                    /// <summary>
+                    /// 現在の車検情報を取得する
+                    /// </summary>
+                    case 'GetCheckInfo':
+
+                        try
+                        {
+
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                a.car_id,
+                                a.car_name,
+                                a.car_no,
+                                a.garages,
+                                a.is_rental,
+                                b.check_car_day,
+                                b.next_check_car_day,
+                                b.request_check_place
+
+
+                                FROM cars a
+                                LEFT JOIN cars_check_list b ON a.cars_check_list_id = b.cars_check_list_id
+                                WHERE un_useble_day IS NULL 
+                            ';
+ 
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterBookingData = pg_fetch_all($result1);
+ 
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterBookingData] ];
+ 
+       
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+   
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+
+                    break;
+
                     // <summery>
                     // スケジュール
                     // 予定タイトル取得
