@@ -333,6 +333,19 @@
                             $UnLimited = date('Y-m-d', strtotime($SaveData->unlimited_day));
                             $IsRental = $SaveData->IsRental;
 
+                            $Delivery_day = isset($SaveData->Delivery_day) && $SaveData->Delivery_day !== null && $SaveData->Delivery_day !== ''
+                            ? date('Y-m-d', strtotime($SaveData->Delivery_day))
+                            : null;
+                        
+                            $First_day = isset($SaveData->First_day) && $SaveData->First_day !== null && $SaveData->First_day !== ''
+                                ? date('Y-m-d', strtotime($SaveData->First_day))
+                                : null;
+                        
+                                
+                            $Price = $SaveData->Price;
+                            $Tax = $SaveData->Tax;
+
+
                             // 使用制限日が存在する場合
                             if (!empty($SaveData->limited_day)) {
                                 $Limited = date('Y-m-d', strtotime($SaveData->limited_day));
@@ -350,7 +363,11 @@
                                     create_user_id,
                                     use_display,
                                     unlimited_day,
-                                    limited_day
+                                    limited_day,
+                                    delivery_day,
+                                    first_day,
+                                    price,
+                                    tax
                                     )
                                     VALUES(
                                     '$CarName',
@@ -364,7 +381,11 @@
                                     '$CreateUserId',
                                     $UseDisplay,
                                     '$UnLimited',
-                                    '$Limited'
+                                    '$Limited',
+                                    " . ($Delivery_day ? "'$Delivery_day'" : "NULL") . ",
+                                    " . ($First_day ? "'$First_day'" : "NULL") . ",
+                                    '$Price',
+                                    '$Tax'
                                     )
                                 ";
                             }
@@ -382,7 +403,11 @@
                                     new_mileage,
                                     create_user_id,
                                     use_display,
-                                    unlimited_day
+                                    unlimited_day,
+                                    delivery_day,
+                                    first_day,
+                                    price,
+                                    tax
                                     )
                                     VALUES(
                                     '$CarName',
@@ -395,7 +420,11 @@
                                     0,
                                     '$CreateUserId',
                                     $UseDisplay,
-                                    '$UnLimited'
+                                    '$UnLimited',
+                                    " . ($Delivery_day ? "'$Delivery_day'" : "NULL") . ",
+                                    " . ($First_day ? "'$First_day'" : "NULL") . ",
+                                    '$Price',
+                                    '$Tax'
                                     )
                                 ";
                             }   
