@@ -384,6 +384,9 @@
                                 a.unlimited_day,
                                 a.limited_day,
                                 a.new_mileage,
+                                a.delivery_day,
+                                a.first_day,
+                                a.price,
                                 b.user_name
                                 FROM cars a
                                 LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id --一時的なユーザーテーブルと結合する

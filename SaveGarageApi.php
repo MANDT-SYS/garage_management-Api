@@ -496,6 +496,11 @@
                             } else {
                                 $LimitedDay = null;
                             }
+
+                            $Delivery_day = date('Y-m-d', strtotime($SaveData->Delivery_day));
+                            $First_day = date('Y-m-d', strtotime($SaveData->First_day));
+                            $Price = $SaveData->Price;
+
                     
                             // ベースの UPDATE 文
                             $sql = "UPDATE cars SET
@@ -509,6 +514,9 @@
                                 use_display = $UseDisplay,
                                 is_rental = $IsRental,
                                 unlimited_day = '$UnlimitedDay',
+                                delivery_day = " . ($Delivery_day ? "'$Delivery_day'" : "NULL") . ",
+                                first_day = " . ($First_day ? "'$First_day'" : "NULL") . ",
+                                price = '$Price',
                                 limited_day = " . ($LimitedDay ? "'$LimitedDay'" : "NULL");
                     
                             // 走行距離があれば new_mileage も更新
