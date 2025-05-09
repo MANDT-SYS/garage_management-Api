@@ -648,7 +648,7 @@
                     break;
 
                     // <summery>
-                    // マスター・車の番号を変更
+                    // マスター・車の番号を変更(並び替え)
                     // </summery>
                     case 'EditMasterCarDisplayNo':
                         $allResult = array();
@@ -709,6 +709,77 @@
    
                         }
  
+                    break;
+
+                    // <summery>
+                    // マスター・備品情報・カテゴリー新規追加
+                    // </summery>
+                    case 'EquipmentCategoryAdd':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+                        $UserId = $array_data->UserId;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try {
+
+                            foreach ($SaveData as $item) {
+
+                                // トランザクション開始
+                                pg_query($pg_conn, "BEGIN");
+
+                                $EquipmentCategory = $item->EquipmentCategory;
+
+                                // タイヤ交換履歴問い合わせ
+                                $sql1 = "INSERT INTO equipment_category (
+                                    equipment_category_name,
+                                    create_day,
+                                    create_user_id
+                                ) VALUES (
+                                    $1,
+                                    $2,
+                                    $3
+                                )";
+
+                                // パラメータセット
+                                $params1 = [
+                                    $EquipmentCategory, 
+                                    $today, 
+                                    (int)$UserId
+                                ];
+
+                        
+                                // --- 実行 ---
+                                $result1 = pg_query_params($pg_conn, $sql1, $params1);
+                                
+                        
+                                // クエリ失敗時のチェック
+                                if ($result1 === false) {
+                                    $all_data = [
+                                        'status' => 0,
+                                        'data' => [pg_last_error($pg_conn)],
+                                        'message' => '登録に失敗しました。'
+                                    ];
+                                    pg_query($pg_conn, "ROLLBACK");
+                                } else {
+                                    $all_data = [
+                                        'status' => 1,
+                                        'data' => [true],
+                                        'message' => '登録成功'
+                                    ];
+                                    pg_query($pg_conn, "COMMIT");
+                                }
+                            }
+
+                        } catch (Exception $ex) {
+                            var_dump($ex);
+                            // クエリのロールバック
+                            pg_query($pg_conn, "ROLLBACK");
+                            pg_close($pg_conn);
+                        }
+
                     break;
 
                     // <summery>

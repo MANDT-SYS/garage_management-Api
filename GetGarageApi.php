@@ -585,6 +585,126 @@
 
                     break;
 
+                    /// <summery>
+                    /// 備品情報が重複して無いか確認(新規登録時)
+                    /// </summery>
+                    case 'CheckDoubleEquipment':
+
+                        // 保存させたいデータ (配列)
+                        $SaveCheckDataArray = $array_data->SaveData;
+
+                        try
+                        {
+
+                            // ✅ すべての重複データをまとめて格納する配列
+                            $allDoubleData = [];
+
+                            // ループ処理で複数レコードを保存
+                            foreach ($SaveCheckDataArray as $SaveData) {
+
+                                $EquipmentCategory = $SaveData->EquipmentCategory;
+
+
+                                // マスター情報取得クエリ
+                                $sql_1 = "
+                                SELECT
+                                    equipment_category_name
+                                FROM equipment_category
+                                WHERE
+                                equipment_category_name = $1
+                                ORDER BY equipment_category_id ASC;";
+
+                                // $1 = $CarId $2 = "$UseEndDay $UseEndTime" $3 = "$UseStartDay $StartTime"
+                                $params = [
+                                    $EquipmentCategory
+                                ];
+
+                                // 実行
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+
+                                $rows = pg_fetch_all($result1);
+
+                                // ✅ 結果が false（0件）なら空配列としてスキップ、それ以外はマージ
+                                if ($rows !== false) {
+                                    $allDoubleData = array_merge($allDoubleData, $rows);
+                                }
+                            }
+        
+                                //オブジェクト配列
+                                $all_data = ['data' => ['CheckData' => $allDoubleData] ]; 
+        
+            
+                                //クエリのコミット
+                                pg_query($pg_conn,"COMMIT");
+                            } 
+                            catch (Exception $ex) {
+        
+                                var_dump($ex->getMessage());
+        
+                                // クエリのロールバック
+                                pg_query($pg_conn,"ROLLBACK");
+                                pg_close($pg_conn);
+                            }
+                    break;
+
+
+                    // <summery>
+                    // BookingGarage・マスター備品情報入手
+                    // </summery>
+                    case 'GetEquipmentCategory':
+
+                        try
+                        {
+
+                            // マスター情報取得クエリ
+                            $sql_1 = "SELECT
+                                a.car_id,
+                                a.car_name,
+                                a.car_no,
+                                a.garages,
+                                COALESCE(STRING_AGG(b.equipment_category_name, ', '), '') AS equipment_category_name
+
+                                FROM cars a
+                                LEFT JOIN LATERAL UNNEST(
+                                    ARRAY_REMOVE(string_to_array(a.equipment_category_id, ','), '')
+                                ) AS word_id(equipment_category_id_re) ON true
+                                LEFT JOIN equipment_category b ON b.equipment_category_id = equipment_category_id_re::INTEGER
+
+                                WHERE a.un_useble_day IS NULL
+
+                                GROUP BY
+                                    a.car_id,
+                                    a.car_name,
+                                    a.car_no,
+                                    a.garages
+
+                                ORDER BY a.car_id ASC;
+                            ";
+
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterBookingData = pg_fetch_all($result1);
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterBookingData] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $e) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;  
+
                     // <summery>
                     // マスター車情報入手(HistroySearch画面)
                     // </summery>
