@@ -609,7 +609,7 @@
                                 $sql_1 = "
                                 SELECT
                                     equipment_category_name
-                                FROM equipment_category
+                                FROM cars_equipment_category
                                 WHERE
                                 equipment_category_name = $1
                                 ORDER BY equipment_category_id ASC;";
@@ -668,7 +668,7 @@
                                 LEFT JOIN LATERAL UNNEST(
                                     ARRAY_REMOVE(string_to_array(a.equipment_category_id, ','), '')
                                 ) AS word_id(equipment_category_id_re) ON true
-                                LEFT JOIN equipment_category b ON b.equipment_category_id = equipment_category_id_re::INTEGER
+                                LEFT JOIN cars_equipment_category b ON b.equipment_category_id = equipment_category_id_re::INTEGER
 
                                 WHERE a.un_useble_day IS NULL
 
@@ -703,7 +703,76 @@
     
                         }
 
-                    break;  
+                    break;
+                    
+                    /// <sumeery>
+                    /// 備品情報とマスター情報を取得する
+                    /// </summary>
+                    case 'GetEquipmentCategoryEditData':
+
+                        try
+                        {
+                            
+                            // マスター情報取得クエリ
+                            $sql_1 = "SELECT
+                                a.car_id,
+                                a.car_name,
+                                a.car_no
+                                COALESCE(STRING_AGG(b.equipment_category_name, ', '), '') AS equipment_category_name
+
+                                FROM cars a
+                                LEFT JOIN LATERAL UNNEST(
+                                    ARRAY_REMOVE(string_to_array(a.equipment_category_id, ','), '')
+                                ) AS word_id(equipment_category_id_re) ON true
+                                LEFT JOIN cars_equipment_category b ON b.equipment_category_id = equipment_category_id_re::INTEGER
+
+                                WHERE a.un_useble_day IS NULL
+
+                                GROUP BY
+                                    a.car_id,
+                                    a.car_name,
+                                    a.car_no
+
+                                ORDER BY a.car_id ASC;
+                            ";
+             
+
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterData = pg_fetch_all($result1);
+
+                            $sql_2 = 'SELECT
+                                equipment_category_id,
+                                equipment_category_name
+
+                                FROM cars_equipment_category 
+
+                                ORDER BY equipment_category_id ASC
+                            ';
+
+                            // 実行
+                            $result2 = pg_query($sql_2);
+                            $EquipmentEditData = pg_fetch_all($result2);
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterData, 'EquipmentData' => $EquipmentEditData] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
 
                     // <summery>
                     // マスター車情報入手(HistroySearch画面)
