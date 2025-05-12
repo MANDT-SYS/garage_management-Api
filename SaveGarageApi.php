@@ -783,6 +783,71 @@
                     break;
 
                     // <summery>
+                    // 社有車に備品情報を紐づける
+                    // </summery>
+                    case 'EquipmentCategoryRelation':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+                        $UserId = $array_data->UserId;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+
+                            $CarId = $SaveData->CarId;
+                            $EquipmentId = $SaveData->EquipmentId;
+
+
+                            // マスター情報取得クエリ
+                            $sql = "UPDATE cars SET
+                                equipment_category_id = '$EquipmentId',
+                                edit_day = '$today',
+                                edit_user_id = '$UserId'
+
+
+                                WHERE car_id = '$CarId'
+                            ";
+                            
+
+                            // 実行
+                            $result1 = pg_query($pg_conn, $sql);
+
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => $returnMessage
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+    
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
                     // タイヤ情報_夏/冬タイヤ切り替え
                     // </summery>
                     case 'ChangeTires':

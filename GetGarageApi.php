@@ -717,22 +717,12 @@
                             $sql_1 = "SELECT
                                 a.car_id,
                                 a.car_name,
-                                a.car_no
-                                COALESCE(STRING_AGG(b.equipment_category_name, ', '), '') AS equipment_category_name
+                                a.car_no,
+                                a.equipment_category_id
 
                                 FROM cars a
-                                LEFT JOIN LATERAL UNNEST(
-                                    ARRAY_REMOVE(string_to_array(a.equipment_category_id, ','), '')
-                                ) AS word_id(equipment_category_id_re) ON true
-                                LEFT JOIN cars_equipment_category b ON b.equipment_category_id = equipment_category_id_re::INTEGER
 
                                 WHERE a.un_useble_day IS NULL
-
-                                GROUP BY
-                                    a.car_id,
-                                    a.car_name,
-                                    a.car_no
-
                                 ORDER BY a.car_id ASC;
                             ";
              
