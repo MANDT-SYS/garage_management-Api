@@ -733,7 +733,7 @@
                                 $EquipmentCategory = $item->EquipmentCategory;
 
                                 // タイヤ交換履歴問い合わせ
-                                $sql1 = "INSERT INTO equipment_category (
+                                $sql1 = "INSERT INTO cars_equipment_category (
                                     equipment_category_name,
                                     create_day,
                                     create_user_id
