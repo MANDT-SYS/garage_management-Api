@@ -848,6 +848,71 @@
                     break;
 
                     // <summery>
+                    // 備品情報自体を変更する
+                    // </summery>
+                    case 'EquipmentCategoryUpdate':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+                        $UserId = $array_data->UserId;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+
+                            $EquipmentCategoryID = $SaveData->EquipmentCategoryID;
+                            $ChangeCategory = $SaveData->ChangeCategory;
+
+
+                            // マスター情報取得クエリ
+                            $sql = "UPDATE cars_equipment_category SET
+                                equipment_category_name = '$ChangeCategory',
+                                edit_day = '$today',
+                                edit_user_id = '$UserId'
+
+
+                                WHERE equipment_category_id = '$EquipmentCategoryID'
+                            ";
+                            
+
+                            // 実行
+                            $result1 = pg_query($pg_conn, $sql);
+
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => $returnMessage
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+    
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
                     // タイヤ情報_夏/冬タイヤ切り替え
                     // </summery>
                     case 'ChangeTires':
