@@ -238,7 +238,6 @@
                                 pg_close($pg_conn);
                             }
                     break;
-
                      
                     /// <summery>
                     /// 予約情報が重複して無いか確認(予約変更時)
@@ -316,7 +315,6 @@
                                 pg_close($pg_conn);
                             }
                     break;
-                    
                     
                     // <summery>
                     // BookingGarage・マスター社有車情報入手
@@ -417,7 +415,6 @@
                         }
  
                     break;
-
 
                     // <summery>
                     // BookingGarage・マスター社有車情報入手
@@ -647,7 +644,6 @@
                             }
                     break;
 
-
                     // <summery>
                     // BookingGarage・マスター備品情報入手
                     // </summery>
@@ -655,6 +651,50 @@
 
                         try
                         {
+
+                                                        ////////////////////////////////////////////////////////////////////
+                            // ユーザー情報の取得と、一時的テーブルの作成 //////////////////////////
+                            // curlのセッションを初期化する
+                            $ch = curl_init();
+                            // curlのオプションを設定する
+                            $options = array(
+                            CURLOPT_URL => 'https://system.syowa.com/user-management/api/'.ConstData::API_VER.'/user',
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_HTTPHEADER => $getExternalHeaders,
+                            );
+                            curl_setopt_array($ch, $options);
+                            // curlを実行し、レスポンスデータを保存する
+                            $response  = curl_exec($ch);
+                            $user_arr = json_decode($response,true);
+                            // curlセッションを終了する
+                            curl_close($ch);
+ 
+                            //一時的なテーブルの作成
+                            pg_query("
+                            CREATE TEMP TABLE temp_user_table(
+                                user_id INTEGER,
+                                user_name TEXT
+                                )
+                            ");
+ 
+                            // 一時的なテーブルにユーザー情報を挿入
+                            foreach ($user_arr["data"] as $userData) {
+                                //var_dump($orderData);
+                                pg_query("
+                                    INSERT INTO temp_user_table(
+                                        user_id,
+                                        user_name
+                                    )
+                                    VALUES (
+                                        '{$userData["userId"]}',
+                                        '{$userData["familyName"]} {$userData["givenName"]}'
+                                    )
+                                ");
+                                }
+ 
+                            ////////////////////////////////////////////////////////////////////
+                            ////////////////////////////////////////////////////////////////////
+
 
                             // マスター情報取得クエリ
                             $sql_1 = "SELECT
@@ -683,10 +723,28 @@
 
                             // 実行
                             $result1 = pg_query($sql_1);
-                            $MasterBookingData = pg_fetch_all($result1);
+                            $MasterData = pg_fetch_all($result1);
+
+                            $sql_2 = 'SELECT 
+                                a.equipment_category_name,
+                                a.create_day,
+                                b.user_name AS create_user_name,
+                                a.edit_day,
+                                c.user_name AS edit_user_name
+                                
+                                FROM cars_equipment_category a
+                                LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id
+                                LEFT JOIN temp_user_table c ON a.edit_user_id = c.user_id
+
+                                ORDER BY a.equipment_category_id ASC;   
+                            ';
+
+                            // 実行
+                            $result2 = pg_query($sql_2);
+                            $EquipmentList = pg_fetch_all($result2);
 
                             //オブジェクト配列
-                            $all_data = ['data' => ['MasterGarage' => $MasterBookingData] ]; 
+                            $all_data = ['data' => ['MasterGarage' => $MasterData,'EquipmentListData' => $EquipmentList] ]; 
 
         
                             //クエリのコミット
@@ -1718,6 +1776,7 @@
 
 
                     break;
+
                     // <summery>
                     // スケジュール
                     // BookingGarage・マスター社有車情報入手
@@ -1852,6 +1911,7 @@
                         }
  
                     break;
+
                     // <summery>
                     // スケジュール
                     // 予定取得
@@ -1924,7 +1984,6 @@
                         }
  
                     break;
-
 
                     // <summery>
                     // スケジュール
