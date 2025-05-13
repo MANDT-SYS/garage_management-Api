@@ -1732,7 +1732,41 @@
  
  
                             // マスター情報取得クエリ
-                            $sql_1 = 'SELECT
+                            $sql_1 = "SELECT
+                                a.car_id,
+                                a.car_name,
+                                a.car_no,
+                                a.garages,
+                                a.etc,
+                                a.creat_day,
+                                a.create_user_id,
+                                a.seat_of_number,
+                                a.use_display,
+                                a.is_rental,
+                                a.unlimited_day,
+                                a.limited_day,
+                                a.new_mileage,
+                                a.delivery_day,
+                                a.first_day,
+                                a.price,
+                                b.user_name,
+                                c.request_check_place,
+                                c.next_check_car_day,
+                                COALESCE(STRING_AGG(d.equipment_category_name, ', '), '') AS equipment_category_name
+                                FROM cars a
+                                --一時的なユーザーテーブルと結合する
+                                LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id 
+                                --車検テーブルと結合する
+                                LEFT JOIN cars_check_list c ON a.cars_check_list_id = c.cars_check_list_id 
+                                --備品
+                                LEFT JOIN LATERAL UNNEST(
+                                    ARRAY_REMOVE(string_to_array(a.equipment_category_id, ','), '')
+                                ) AS word_id(equipment_category_id_re) ON true
+                                --備品テーブルと結合する
+                                LEFT JOIN cars_equipment_category d ON d.equipment_category_id = equipment_category_id_re::INTEGER
+                                --CROSS JOIN LATERAL UNNEST(string_to_array(a.equipment_category_id, ',')) AS equipment_category_id(equipment_category_id_re)
+                                WHERE a.un_useble_day IS NULL
+                                GROUP BY
                                 a.car_id,
                                 a.car_name,
                                 a.car_no,
@@ -1752,15 +1786,9 @@
                                 b.user_name,
                                 c.request_check_place,
                                 c.next_check_car_day
-                                FROM cars a
-                                --一時的なユーザーテーブルと結合する
-                                LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id 
-                                --車検テーブルと結合する
-                                LEFT JOIN cars_check_list c ON a.cars_check_list_id = c.cars_check_list_id 
-                                
-                                WHERE a.un_useble_day IS NULL
+
                                 ORDER BY a.display_no ASC, a.car_id ASC;
-                            ';
+                            ";
  
                             // 実行
                             $result1 = pg_query($sql_1);
@@ -1798,7 +1826,7 @@
                         {
                            
                             //スケジュール取得クエリ
-                            $sql = 'SELECT
+                            $sql1 = 'SELECT
                             schedule_id,
                             title_id,
                             date,
@@ -1810,14 +1838,39 @@
                             ORDER BY car_id ASC';
  
                             // 実行（プレースホルダを使って安全に）
-                            $result1 = pg_query_params($pg_conn, $sql, [$fiscal_year]);
+                            $result1 = pg_query_params($pg_conn, $sql1, [$fiscal_year]);
  
                             $scheduleData = pg_fetch_all($result1);
  
-                            //オブジェクト配列
-                            $all_data = ['data' =>  $scheduleData];
+                            //車庫履歴情報取得クエリ
+                            $sql2 = 'SELECT
+                            schedule_garage_history_id,
+                            garage_name,
+                            car_id,
+                            fiscal_year
+                            FROM (
+                                SELECT
+                                    *,
+                                    --各 car_id ごとにIDが大きい順に番号を付ける
+                                    ROW_NUMBER() OVER (PARTITION BY car_id ORDER BY schedule_garage_history_id DESC) AS rn
+                                FROM schedule_garage_history
+                                WHERE fiscal_year = $1
+                            ) AS sub
+                            --各 car_id ごとに上位3件を取得
+                            WHERE rn <= 3
+                            ORDER BY car_id ASC, schedule_garage_history_id DESC';
  
-       
+                            // 実行（プレースホルダを使って安全に）
+                            $result2 = pg_query_params($pg_conn, $sql2, [$fiscal_year]);
+ 
+                            $scheduleGarageHistoryData = pg_fetch_all($result2);
+ 
+                            // 2つのデータを分けて返却用配列に格納[スケジュール情報、、車庫履歴情報]
+                            $all_data = [
+                                'schedule' => $scheduleData,
+                                'garage' => $scheduleGarageHistoryData
+                            ];
+                            
                             //クエリのコミット
                             pg_query($pg_conn,"COMMIT");
                         }
@@ -1876,6 +1929,54 @@
  
                     break;
                     
+                     // <summery>
+                    // スケジュール
+                    // 車庫情報履歴取得
+                    // </summery>
+                    case 'GetScheduleGarageHistory':
+                       
+                        // 取得したい年度
+                        $fiscal_year = $array_data->fiscal_year;
+
+                        try
+                        {
+                           
+                            //スケジュール取得クエリ
+                            $sql = 'SELECT
+                            schedule_garage_history_id,
+                            garage_name,
+                            car_id,
+                            fiscal_year
+                            FROM schedule
+                            WHERE fiscal_year = $1 AND delete_day IS NULL
+                            ORDER BY car_id ASC';
+ 
+                            // 実行（プレースホルダを使って安全に）
+                            $result1 = pg_query_params($pg_conn, $sql, [$fiscal_year]);
+ 
+                            $scheduleData = pg_fetch_all($result1);
+ 
+                            // 2つのデータを分けて返却用配列に格納
+                            $all_data = [
+                                'basic' => $scheduleBasicData,
+                                'garage' => $scheduleGarageData
+                            ];
+ 
+       
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+                        }
+                        catch (Exception $ex) {
+   
+                            var_dump($ex);
+   
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+   
+                        }
+ 
+                    break;
                 }                     
             }
         }
