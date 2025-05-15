@@ -1070,7 +1070,7 @@
                     break;
 
                     // <summery>
-                    // 過去の予約履歴確認(BookingHistroySearch画面)
+                    // 過去の予約履歴確認(MirageHistroySearch画面)
                     // </summery>
                     case 'GetMileageHistoryAllInfo':
 
@@ -1831,6 +1831,146 @@
                         }
                    
                    
+                    break;
+
+                    // <summery>
+                    // 過去の給油履歴確認(OilChargeHistroy画面)
+                    // </summery>
+                    case 'GetOilChargeHistoryAllInfo':
+
+                        $SelectCheckDataArray = $array_data->SerchHistory;
+
+                        try
+                        {
+                            ////////////////////////////////////////////////////////////////////
+                            // ユーザー情報の取得と、一時的テーブルの作成 //////////////////////////
+                            // curlのセッションを初期化する
+                            $ch = curl_init();
+                            // curlのオプションを設定する
+                            $options = array(
+                            CURLOPT_URL => 'https://system.syowa.com/user-management/api/'.ConstData::API_VER.'/user',
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_HTTPHEADER => $getExternalHeaders,
+                            );
+                            curl_setopt_array($ch, $options);
+                            // curlを実行し、レスポンスデータを保存する
+                            $response  = curl_exec($ch);
+                            $user_arr = json_decode($response,true);
+                            // curlセッションを終了する
+                            curl_close($ch);
+ 
+                            //一時的なテーブルの作成
+                            pg_query("
+                            CREATE TEMP TABLE temp_user_table(
+                                user_id INTEGER,
+                                user_name TEXT
+                                )
+                            ");
+ 
+                            // 一時的なテーブルにユーザー情報を挿入
+                            foreach ($user_arr["data"] as $userData) {
+                                //var_dump($orderData);
+                                pg_query("
+                                    INSERT INTO temp_user_table(
+                                        user_id,
+                                        user_name
+                                    )
+                                    VALUES (
+                                        '{$userData["userId"]}',
+                                        '{$userData["familyName"]} {$userData["givenName"]}'
+                                    )
+                                ");
+                                }
+ 
+                            ////////////////////////////////////////////////////////////////////
+                            ////////////////////////////////////////////////////////////////////
+ 
+
+
+                            $ForBellow = $SelectCheckDataArray->ForBellow;
+                            $PullCars = $SelectCheckDataArray->PullCars;
+                            $CarId = $SelectCheckDataArray->CarId;
+                            $StartDate = $SelectCheckDataArray->StartDate;
+                            $EndDate = $SelectCheckDataArray->EndDate;
+                            
+                            $conditions = ["a.car_id IS NOT NULL"]; // ベース条件(この条件はSQLの為適当医に入れる)
+                            $params = []; // パラメータ配列
+                            $paramIndex = 1;
+                            
+                            // ForBellowがtrueなら日付フィルタを追加
+                            if ($ForBellow === false) {
+                                $conditions[] = "a.oil_charge_day >= $" . $paramIndex++;
+                                $params[] = $StartDate;
+                            
+                                $conditions[] = "a.oil_charge_day <= $" . $paramIndex++;
+                                $params[] = $EndDate;
+                            }
+                            
+                            // PullCarsが「全車種」以外なら車両フィルタを追加
+                            if ($PullCars !== "全車種") {
+                                $conditions[] = "b.car_id = $" . $paramIndex++;
+                                $params[] = $CarId;
+                            }
+                            
+                            // 条件を結合
+                            $whereClause = implode(" AND ", $conditions);
+                            
+                            // SQLを組み立て
+                            $sql_1 = "
+                            SELECT
+                                a.car_name,
+                                b.car_no,
+                                a.oil_charge_place,
+                                a.oil_type,
+                                a.oil_quantity,
+                                a.oil_unit_price,
+                                a.oil_all_price,
+                                a.oil_charge_day,
+                                a.memo,
+                                a.add_day,
+                                a.edit_day,
+                                c.user_name as add_user_name,
+                                d.user_name as edit_user_name
+                                
+
+
+                            FROM cars_oil_charge_history a
+                            LEFT JOIN cars b USING(car_id)
+                            LEFT JOIN temp_user_table c ON a.add_user_id = c.user_id
+                            LEFT JOIN temp_user_table d ON a.edit_user_id = d.user_id
+                            WHERE $whereClause
+                            ORDER BY display_no ASC, b.car_id ASC;
+                            ";
+                            
+                            // 実行
+                            if ($PullCars == "全車種" && $ForBellow === false) {
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+                            }
+                            else{
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+                            }
+                            $HistoryMileageData = pg_fetch_all($result1);
+
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['HistoryMilageData' => $HistoryMileageData] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+
                     break;
 
                     /// <sumeery>
