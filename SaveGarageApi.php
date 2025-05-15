@@ -1340,6 +1340,137 @@
                     break;
 
                     // <summery>
+                    // 給油情報の保存
+                    // </summery>
+                    case 'OilXChargeInsert':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+                        $UserId = $array_data->UserId;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+
+                            // トランザクション開始
+                            pg_query($pg_conn, "BEGIN");
+
+                            $CarId = $SaveData->CarId;
+                            $CarName = $SaveData->CarName;
+                            $Place = $SaveData->Place;
+                            $OilType = $SaveData->OilType;
+                            $OilQuantity = $SaveData->OilQuantity;
+                            $UnitPrice = $SaveData->UnitPrice;
+                            $AllPrice = $SaveData->AllPrice;
+                            $ChargeDay = date('Y-m-d', strtotime($SaveData->ChargeDay));
+                            $Note = $SaveData->Note;
+
+
+                            // 車検情報を追加するクエリ
+                            $sql1 = "INSERT INTO cars_oil_charge_history (
+                                care_id,
+                                car_name,
+                                oil_charge_place,
+                                oil_type,
+                                oil_quantity,
+                                oil_unit_price,
+                                oil_all_price,
+                                oil_charge_day,
+                                memo,
+                                add_day,
+                                add_user_id
+                            ) VALUES (
+                                $1,
+                                $2,
+                                $3,
+                                $4,
+                                $5,
+                                $6,
+                                $7,
+                                $8,
+                                $9,
+                                $10,
+                                $11
+                            )
+                            RETURNING oil_charge_id;";
+
+                            // パラメータセット(タイヤマスター・追加)
+                            $params1 = [
+                                $CarId, 
+                                $CarName, 
+                                $Place,
+                                $OilType,
+                                $OilQuantity,
+                                $UnitPrice,
+                                (int)$AllPrice,
+                                $ChargeDay,
+                                $Note,
+                                $today,
+                                (int)$UserId
+                            ];
+
+                            // --- 実行 ---
+                            $result1 = pg_query_params($pg_conn, $sql1, $params1);
+
+                            // --- ID取得 ---
+                            $inserted_id = null;
+                            if ($result1 && $row = pg_fetch_assoc($result1)) {
+                                $inserted_id = $row['oil_charge_id'];
+                            }
+
+                            // ベースの UPDATE 文(社有車・マスター情報問い合わせ)
+                            $sql2 = "UPDATE cars SET
+                                oil_charge_id = $1,
+                                edit_day = $2,
+                                edit_user_id = $3
+                                WHERE car_id = $4 AND un_useble_day IS NULL
+                            ";
+
+                            // パラメータセット(社有車情報・変更)
+                            $params2 = [
+                                $inserted_id,
+                                $today, 
+                                (int)$UserId,
+                                $CarId
+                            ];
+
+
+                            // --- 実行 ---
+                            $result2 = pg_query_params($pg_conn, $sql2, $params2);
+                                
+                        
+                            // クエリ失敗時のチェック
+                            if ($result1 === false|| $result2 === false) {
+                                $all_data = [
+                                    'status' => 0,
+                                    'data' => [pg_last_error($pg_conn)],
+                                    'message' => '登録に失敗しました。'
+                                    ];
+                                    pg_query($pg_conn, "ROLLBACK");
+                            } else {
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+                                pg_query($pg_conn, "COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
                     // 変更する車検情報を保存
                     // </summery>
                     case 'CheckCarEditdate':

@@ -1777,6 +1777,120 @@
 
                     break;
 
+                    /// <summary>
+                    /// 最新の給油情報を取得する
+                    /// </summary>
+                    case 'GetOilChargeInfo':
+                   
+                        try
+                        {
+                   
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                a.car_id,
+                                a.car_name,
+                                a.car_no,
+                                a.garages,
+                                a.is_rental,
+                                b.car_name as etc_car_name,
+                                b.oil_quantity,
+                                b.oil_unit_price,
+                                b.oil_all_price,
+                                b.oil_charge_place,
+                                b.oil_charge_day
+                   
+                   
+                                FROM cars a
+                                LEFT JOIN cars_oil_charge_history b ON a.oil_charge_id = b.oil_charge_id
+                                WHERE un_useble_day IS NULL 
+                                ORDER BY a.car_id ASC
+                            ';
+                   
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterBookingData = pg_fetch_all($result1);
+                   
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterBookingData] ];
+                   
+                   
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+                   
+                   
+                        } 
+                        catch (Exception $ex) {
+                   
+                            var_dump($ex);
+                   
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+                   
+                        }
+                   
+                   
+                    break;
+
+                    // <summery>
+                    // マスター車情報入手(給油情報登録画面)
+                    // </summery>
+                    case 'GetOilMasterData':
+
+                        try
+                        {
+                            
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                car_id,
+                                car_name,
+                                car_no
+
+                                FROM cars 
+
+                                WHERE un_useble_day IS NULL
+                                ORDER BY car_id ASC
+                            ';
+             
+
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterData = pg_fetch_all($result1);
+
+                            $sql_2 = 'SELECT
+                            etc_id,
+                            etc_name
+
+                            FROM cars_etc_name 
+
+                            WHERE deleted_day IS NULL
+                            ORDER BY etc_id ASC
+                        ';
+
+                            // 実行
+                            $result2 = pg_query($sql_2);
+                            $ETC = pg_fetch_all($result2);
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterData, 'EtcCarsData' => $ETC] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
                     // <summery>
                     // スケジュール
                     // BookingGarage・マスター社有車情報入手
