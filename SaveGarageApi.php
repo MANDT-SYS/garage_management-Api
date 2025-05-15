@@ -1340,9 +1340,86 @@
                     break;
 
                     // <summery>
+                    // 変更する車検情報を保存
+                    // </summery>
+                    case 'CheckCarEditdate':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+                            $CarId = $SaveData->CarId;
+                            $CheckListId = $SaveData->CheckListId;
+                            $RequestCheckPlace = $SaveData->request_Check_Place;
+                            $NextCheckCarDay = date('Y-m-d', strtotime($SaveData->NextCheckCarDay));
+                            $CheckCarDay = date('Y-m-d', strtotime($SaveData->CheckCarDay));
+                            $UserId = $SaveData->UserId;
+
+                            // ベースの UPDATE 文(マスター情報問い合わせ)
+                            $sql = "UPDATE cars_check_list SET
+                                check_car_day = $1,
+                                next_check_car_day = $2,
+                                request_check_place = $3,
+                                edit_day = $4,
+                                edit_user_id = $5
+                                WHERE cars_check_list_id = $6
+                            ";
+
+                            // パラメータセット
+                            $params = [
+                                $CheckCarDay, 
+                                $NextCheckCarDay, 
+                                $RequestCheckPlace,
+                                $today,
+                                (int)$UserId,
+                                (int)$CheckListId,
+                            ];
+
+
+                            // --- 実行 ---
+                            $result = pg_query_params($pg_conn, $sql, $params);
+
+
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => $returnMessage
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+    
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
                     // 給油情報の保存
                     // </summery>
-                    case 'OilXChargeInsert':
+                    case 'OilChargeInsert':
 
                         // 保存させたいデータ
                         $SaveData = $array_data -> SaveData;
@@ -1370,7 +1447,7 @@
 
                             // 車検情報を追加するクエリ
                             $sql1 = "INSERT INTO cars_oil_charge_history (
-                                care_id,
+                                car_id,
                                 car_name,
                                 oil_charge_place,
                                 oil_type,
@@ -1473,10 +1550,11 @@
                     // <summery>
                     // 変更する車検情報を保存
                     // </summery>
-                    case 'CheckCarEditdate':
+                    case 'OilChargeEditSave':
 
                         // 保存させたいデータ
                         $SaveData = $array_data -> SaveData;
+                        $UserId = $array_data->UserId;
 
                         // 現在の日時
                         $today = date('Y-m-d H:i:s');
@@ -1484,30 +1562,45 @@
                         try
                         {
                             $CarId = $SaveData->CarId;
-                            $CheckListId = $SaveData->CheckListId;
-                            $RequestCheckPlace = $SaveData->request_Check_Place;
-                            $NextCheckCarDay = date('Y-m-d', strtotime($SaveData->NextCheckCarDay));
-                            $CheckCarDay = date('Y-m-d', strtotime($SaveData->CheckCarDay));
-                            $UserId = $SaveData->UserId;
+                            $CarName = $SaveData->CarName;
+                            $Place = $SaveData->Place;
+                            $OilType = $SaveData->OilType;
+                            $OilQuantity = $SaveData->OilQuantity;
+                            $UnitPrice = $SaveData->UnitPrice;
+                            $AllPrice = $SaveData->AllPrice;
+                            $ChargeDay = date('Y-m-d', strtotime($SaveData->ChargeDay));
+                            $Note = $SaveData->Memo;
+                            $ChangeId = $SaveData->ChangeId;
 
-                            // ベースの UPDATE 文(マスター情報問い合わせ)
-                            $sql = "UPDATE cars_check_list SET
-                                check_car_day = $1,
-                                next_check_car_day = $2,
-                                request_check_place = $3,
-                                edit_day = $4,
-                                edit_user_id = $5
-                                WHERE cars_check_list_id = $6
+                            // 給油情報_履歴テーブルを更新する
+                            $sql = "UPDATE cars_oil_charge_history SET
+                                car_name = $1,
+                                oil_charge_place = $2,
+                                oil_type = $3,
+                                oil_quantity = $4,
+                                oil_unit_price = $5,
+                                oil_all_price = $6,
+                                oil_charge_day = $7,
+                                memo = $8,
+                                edit_day = $9,
+                                edit_user_id = $10
+
+                                WHERE oil_charge_id = $11
                             ";
 
                             // パラメータセット
                             $params = [
-                                $CheckCarDay, 
-                                $NextCheckCarDay, 
-                                $RequestCheckPlace,
+                                $CarName, 
+                                $Place,
+                                $OilType,
+                                $OilQuantity,
+                                $UnitPrice,
+                                (int)$AllPrice,
+                                $ChargeDay,
+                                $Note,
                                 $today,
                                 (int)$UserId,
-                                (int)$CheckListId,
+                                (int)$ChangeId
                             ];
 
 

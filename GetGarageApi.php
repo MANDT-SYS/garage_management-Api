@@ -1795,6 +1795,7 @@
                                 b.car_name as etc_car_name,
                                 b.oil_quantity,
                                 b.oil_unit_price,
+                                b.oil_type,
                                 b.oil_all_price,
                                 b.oil_charge_place,
                                 b.oil_charge_day
@@ -1832,6 +1833,75 @@
                    
                     break;
 
+                    /// <sumeery>
+                    /// 変更したい旧情報を取得する
+                    /// </summary>
+                    case 'GetOilChargeEditData':
+
+                        try
+                        {
+                   
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                a.car_id,
+                                a.car_name,
+                                a.car_no,
+                                a.oil_charge_id,
+                                b.car_name as etc_car_name,
+                                b.oil_charge_place,
+                                b.oil_type,
+                                b.oil_quantity,
+                                b.oil_unit_price,
+                                b.oil_charge_day,
+                                b.memo
+                   
+                   
+                                FROM cars a
+                                LEFT JOIN cars_oil_charge_history b ON a.oil_charge_id = b.oil_charge_id
+                                WHERE un_useble_day IS NULL AND a.oil_charge_id IS NOT NULL
+                                ORDER BY car_id ASC
+                            ';
+                   
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $ChargeOilEditData = pg_fetch_all($result1);
+
+                            $sql_2 = 'SELECT
+                                etc_id,
+                                etc_name
+
+                                FROM cars_etc_name 
+
+                                WHERE deleted_day IS NULL
+                                ORDER BY etc_id ASC
+                            ';
+                   
+                   
+                            // 実行
+                            $result2 = pg_query($sql_2);
+                            $ETC = pg_fetch_all($result2);
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $ChargeOilEditData, 'EtcOilsData' => $ETC] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+                   
+                   
+                        } 
+                        catch (Exception $ex) {
+                   
+                            var_dump($ex);
+                   
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+                   
+                        }
+
+                    break;
+
                     // <summery>
                     // マスター車情報入手(給油情報登録画面)
                     // </summery>
@@ -1865,7 +1935,7 @@
 
                             WHERE deleted_day IS NULL
                             ORDER BY etc_id ASC
-                        ';
+                            ';
 
                             // 実行
                             $result2 = pg_query($sql_2);
