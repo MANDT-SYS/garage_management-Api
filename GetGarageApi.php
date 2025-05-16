@@ -388,7 +388,7 @@
                                 b.user_name
                                 FROM cars a
                                 LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id --一時的なユーザーテーブルと結合する
-                                WHERE a.un_useble_day IS NULL
+                                WHERE a.un_useble_day IS NULL AND is_rental IS NOT NULL
                                 ORDER BY a.display_no ASC, a.car_id ASC;
                             ';
  
@@ -652,7 +652,7 @@
                         try
                         {
 
-                                                        ////////////////////////////////////////////////////////////////////
+                            ////////////////////////////////////////////////////////////////////
                             // ユーザー情報の取得と、一時的テーブルの作成 //////////////////////////
                             // curlのセッションを初期化する
                             $ch = curl_init();
@@ -710,7 +710,7 @@
                                 ) AS word_id(equipment_category_id_re) ON true
                                 LEFT JOIN cars_equipment_category b ON b.equipment_category_id = equipment_category_id_re::INTEGER
 
-                                WHERE a.un_useble_day IS NULL
+                                WHERE a.un_useble_day IS NULL AND is_rental IS NOT NULL
 
                                 GROUP BY
                                     a.car_id,
@@ -780,7 +780,7 @@
 
                                 FROM cars a
 
-                                WHERE a.un_useble_day IS NULL
+                                WHERE a.un_useble_day IS NULL AND is_rental IS NOT NULL
                                 ORDER BY a.car_id ASC;
                             ";
              
@@ -887,7 +887,7 @@
 
                                 FROM cars 
 
-                                WHERE un_useble_day IS NULL
+                                WHERE un_useble_day IS NULL AND is_rental IS NOT NULL
                                 ORDER BY car_id ASC
                             ';
              
@@ -1218,7 +1218,7 @@
                                 is_rental
 
                                 FROM cars
-                                WHERE un_useble_day IS NULL
+                                WHERE un_useble_day IS NULL AND is_rental IS NOT NULL
                             ';
  
                             // 実行
@@ -1272,7 +1272,7 @@
 
                                 FROM cars a
                                 LEFT JOIN cars_tires b ON a.car_id = b.car_id
-                                WHERE un_useble_day IS NULL AND b.useble_change_day IS NULL
+                                WHERE un_useble_day IS NULL AND b.useble_change_day IS NULL AND is_rental IS NOT NULL
                             ';
  
                             // 実行
@@ -1317,7 +1317,7 @@
 
                                 FROM cars 
 
-                                WHERE un_useble_day IS NULL
+                                WHERE un_useble_day IS NULL AND is_rental IS NOT NULL
                                 ORDER BY car_id ASC
                             ';
              
@@ -1548,7 +1548,7 @@
                    
                                 FROM cars a
                                 LEFT JOIN cars_check_list b ON a.cars_check_list_id = b.cars_check_list_id
-                                WHERE un_useble_day IS NULL 
+                                WHERE un_useble_day IS NULL AND is_rental IS NOT NULL
                             ';
                    
                             // 実行
