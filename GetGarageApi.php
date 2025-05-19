@@ -932,6 +932,66 @@
                     break;
 
                     // <summery>
+                    // マスター車情報入手(HistroySearch画面)
+                    // </summery>
+                    case 'GetMasterCarCategoryETCPlus':
+
+                        try
+                        {
+                            
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                car_id,
+                                car_name,
+                                car_no
+
+                                FROM cars 
+
+                                WHERE un_useble_day IS NULL 
+                                ORDER BY car_id ASC
+                            ';
+             
+
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterData = pg_fetch_all($result1);
+
+                            $sql_2 = 'SELECT
+                            car_id,
+                            car_name,
+                            car_no
+
+                            FROM cars 
+
+                            WHERE un_useble_day IS NOT NULL
+                            ORDER BY car_id ASC
+                        ';
+
+                            // 実行
+                            $result2 = pg_query($sql_2);
+                            $DELETEMasterData = pg_fetch_all($result2);
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterData, 'DELETEMasterGarage' => $DELETEMasterData] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
                     // 過去の予約履歴確認(BookingHistroySearch画面)
                     // </summery>
                     case 'GetHistoryReserveInfo':

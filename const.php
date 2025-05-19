@@ -33,21 +33,21 @@
     
     
     // 本番環境 ///////////////////////////
-    //当システム用DBの接続情報
-     const DB_DATA = "host=localhost port=5432 dbname=GarageManagement user=postgres password=goodhandsm-and-t";
-    //メールシステム用DB
-    const MAIL_SYSTEM_DB_DATA = "host=localhost port=5432 dbname=mail_service user=postgres password=goodhandsm-and-t";
-    // 外部APIのバージョン
-     const API_VER = 'v1';
+    // //当システム用DBの接続情報
+    //  const DB_DATA = "host=localhost port=5432 dbname=GarageManagement user=postgres password=goodhandsm-and-t";
+    // //メールシステム用DB
+    // const MAIL_SYSTEM_DB_DATA = "host=localhost port=5432 dbname=mail_service user=postgres password=goodhandsm-and-t";
+    // // 外部APIのバージョン
+    //  const API_VER = 'v1';
     
     // テスト環境 /////////////////////////
-    // // 当システム用DBの接続情報
-    // const DB_DATA = "host=localhost port=5432 dbname=GarageManagement user=postgres password=postgres";
-    // //メールシステム用DB
-    // const MAIL_SYSTEM_DB_DATA = "host=localhost port=5432 dbname=mail_service user=postgres password=postgres";
-    // // 外部APIのバージョン
-    // //const API_VER = 'v1-debug';
-    // const API_VER = 'v1';
+    // 当システム用DBの接続情報
+    const DB_DATA = "host=localhost port=5432 dbname=GarageManagement user=postgres password=postgres";
+    //メールシステム用DB
+    const MAIL_SYSTEM_DB_DATA = "host=localhost port=5432 dbname=mail_service user=postgres password=postgres";
+    // 外部APIのバージョン
+    //const API_VER = 'v1-debug';
+    const API_VER = 'v1';
     
     
     // 会社の初期の日付を設定
