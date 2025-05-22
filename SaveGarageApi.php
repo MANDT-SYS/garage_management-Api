@@ -1663,7 +1663,7 @@
                                 $user_id = $SaveData->user_id;
                            
                                 // 履歴登録（現在の車庫（最新））登録クエリ
-                                $sql = "INSERT INTO schedule_garage_history (
+                                $sql1 = "INSERT INTO schedule_garage_history (
                                     garage_name,car_id, fiscal_year, create_day, create_user_id
                                 ) VALUES (
                                     $1, $2, $3, $4, $5
@@ -1671,7 +1671,7 @@
                                 $params = [$garage_name,$car_id, $fiscal_year, $today, $user_id];
 
                                 // 実行
-                                $result = pg_query_params($pg_conn, $sql, $params);
+                                $result = pg_query_params($pg_conn, $sql1, $params);
                                 if ($result === false) {
                                     $success = false;
                                     $error_messages[] = pg_last_error($pg_conn);
@@ -1783,7 +1783,7 @@
                     
                     // <summery>
                     // スケジュール
-                    // 自動車税履歴の登録・編集
+                    // 購入情報（自動車税）履歴の登録・編集
                     // </summery>
                     case 'scheduleCarTaxSave':
  
@@ -1794,84 +1794,104 @@
                         $today = date('Y-m-d H:i:s');
                         try
                         {
+                            pg_query($pg_conn, "BEGIN"); // トランザクション開始
+                            $success = true;
+
                             $save_type = $SaveData->save_type;
- 
+                            //新規登録
                             if($save_type == "新規登録"){
-                                $date = $SaveData->date;
-                                $title_id = $SaveData->title_id;
-                                $memo = $SaveData->memo;
+                                $tax = $SaveData->tax;
                                 $car_id = $SaveData->car_id;
                                 $fiscal_year = $SaveData->fiscal_year;
-                                $create_user_id = $SaveData->user_id;
+                                $user_id = $SaveData->user_id;
                            
-                                // マスター情報取得クエリ
-                                $sql = "INSERT INTO schedule (
-                                    date, title_id, memo, car_id, fiscal_year, create_day, create_user_id
+                                // 履歴登録（現在の車庫（最新））登録クエリ
+                                $sql1 = "INSERT INTO schedule_tax_history (
+                                    tax,car_id, fiscal_year, create_day, create_user_id
                                 ) VALUES (
-                                    $1, $2, $3, $4, $5, $6, $7
+                                    $1, $2, $3, $4, $5
                                 )";
-                                $params = [$date, $title_id, $memo, $car_id, $fiscal_year, $today, $create_user_id];
+                                $params = [$tax,$car_id, $fiscal_year, $today, $user_id];
 
                                 // 実行
-                                $result = pg_query_params($pg_conn, $sql, $params);
+                                $result = pg_query_params($pg_conn, $sql1, $params);
+                                if ($result === false) {
+                                    $success = false;
+                                    $error_messages[] = pg_last_error($pg_conn);
+                                }
+
+                                //carsテーブルの自動車税も更新
+                                $sql2 = "UPDATE cars SET
+                                    tax = $1,
+                                    edit_day = $2,
+                                    edit_user_id = $3
+                                    WHERE car_id = $4";
+
+                                $params2 = [
+                                    $tax,
+                                    $today,
+                                    $user_id,
+                                    $car_id
+                                ];
+
+                                $result2 = pg_query_params($pg_conn, $sql2, $params2);
+                                if ($result2 === false) {
+                                    $success = false;
+                                    
+                                }
                             }
-                            else if($save_type == "編集"){
-                                $schedule_id = $SaveData->schedule_id;
-                                $date = $SaveData->date;
-                                $title_id = $SaveData->title_id;
-                                $memo = $SaveData->memo;
-                                $edit_user_id = $SaveData->user_id;
-                                // マスター情報取得クエリ
-                                $sql = "UPDATE schedule SET
-                                        date = $1,
-                                        title_id = $2,
-                                        memo = $3,
-                                        edit_day = $4,
-                                        edit_user_id = $5
-                                        WHERE schedule_id = $6";
+                            //編集
+                            else{
+                                $tax = $SaveData->tax;
+                                $schedule_tax_history_id = $SaveData->schedule_tax_history_id;
+                                $user_id = $SaveData->user_id;
+                                $car_id = $SaveData->car_id;
+
+                                // 履歴の車庫名編集クエリ
+                                $sql = "UPDATE schedule_tax_history SET
+                                        tax = $1,
+                                        edit_day = $2,
+                                        edit_user_id = $3
+                                        WHERE schedule_tax_history_id = $4";
 
                                 $params = [
-                                $date,
-                                $title_id,
-                                $memo,
-                                $today,
-                                $edit_user_id,
-                                $schedule_id
+                                    $tax,
+                                    $today,
+                                    $user_id,
+                                    $schedule_tax_history_id
                                 ];
 
                                 // 実行
                                 $result = pg_query_params($pg_conn, $sql, $params);
+                                if ($result === false) {
+                                    $success = false;
+                                    
+                                }
 
-                            }
-                            else{//$save_type == "削除"
-                                $schedule_id = $SaveData->schedule_id;
-                                $delete_user_id = $SaveData->user_id;
-                                // マスター情報取得クエリ
-                                $sql = "UPDATE schedule SET
-                                delete_day = $1,
-                                delete_user_id = $2,
-                                WHERE schedule_id = $3
-                                ";
-                               $params = [
-                                $today,
-                                $delete_user_id,
-                                $schedule_id
+                                //carsテーブルの自動車税も更新
+                                $sql2 = "UPDATE cars SET
+                                    tax = $1,
+                                    edit_day = $2,
+                                    edit_user_id = $3
+                                    WHERE car_id = $4";
+
+                                $params2 = [
+                                    $tax,
+                                    $today,
+                                    $user_id,
+                                    $car_id
                                 ];
 
-                                // 実行
-                                $result = pg_query_params($pg_conn, $sql, $params);
+                                $result2 = pg_query_params($pg_conn, $sql2, $params2);
+                                if ($result2 === false) {
+                                    $success = false;
+                                }
+                                   
+                                
                             }
- 
-                             //クエリ失敗
-                            if ($result === false) {
-                                $all_data = [
-                                'status' => 0,
-                                'data' => [pg_last_error($pg_conn)],
-                                'message' => '保存エラー'
-                                ];
-                            }
+
                             //クエリ成功
-                            else{
+                            if ($success){
                                 $all_data = [
                                     'status' => 1,
                                     'data' => [true],
@@ -1881,11 +1901,164 @@
                                 //コミット
                                 pg_query($pg_conn,"COMMIT");
                             }
+                            //クエリ失敗
+                            else{
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => '保存エラー'
+                                ];
+                            }
                         }
                         catch (Exception $ex) {
-   
                             var_dump($ex);
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
    
+                        }
+ 
+                    break;
+
+                    // <summery>
+                    // スケジュール
+                    // リース情報（金額・期間）履歴の登録・編集
+                    // </summery>
+                    case 'scheduleCarLeaseSave':
+ 
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+                        try
+                        {
+                            pg_query($pg_conn, "BEGIN"); // トランザクション開始
+                            $success = true;
+
+                            $save_type = $SaveData->save_type;
+                            //新規登録
+                            if($save_type == "新規登録"){
+                                $lease_amount = $SaveData->lease_amount;
+                                $lease_start_day = $SaveData->lease_start_day;
+                                $lease_end_day = $SaveData->lease_end_day;
+                                $car_id = $SaveData->car_id;
+                                $fiscal_year = $SaveData->fiscal_year;
+                                $user_id = $SaveData->user_id;
+                           
+                                // 履歴登録（現在の車庫（最新））登録クエリ
+                                $sql1 = "INSERT INTO schedule_lease_history (
+                                    lease_amount,lease_start_day,lease_end_day,car_id, fiscal_year, create_day, create_user_id
+                                ) VALUES (
+                                    $1, $2, $3, $4, $5, $6, $7
+                                )";
+                                $params = [$lease_amount,$lease_start_day,$lease_end_day,$car_id, $fiscal_year, $today, $user_id];
+
+                                // 実行
+                                $result = pg_query_params($pg_conn, $sql1, $params);
+                                if ($result === false) {
+                                    $success = false;
+                                    $error_messages[] = pg_last_error($pg_conn);
+                                }
+
+                                //carsテーブルの自動車税も更新
+                                // $sql2 = "UPDATE cars SET
+                                //     tax = $1,
+                                //     edit_day = $2,
+                                //     edit_user_id = $3
+                                //     WHERE car_id = $4";
+
+                                // $params2 = [
+                                //     $tax,
+                                //     $today,
+                                //     $user_id,
+                                //     $car_id
+                                // ];
+
+                                // $result2 = pg_query_params($pg_conn, $sql2, $params2);
+                                // if ($result2 === false) {
+                                //     $success = false;
+                                    
+                                // }
+                            }
+                            //編集
+                            else{
+                                $lease_amount = $SaveData->lease_amount;
+                                $lease_start_day = $SaveData->lease_start_day;
+                                $lease_end_day = $SaveData->lease_end_day;
+                                $schedule_lease_history_id = $SaveData->schedule_lease_history_id;
+                                $user_id = $SaveData->user_id;
+                                $car_id = $SaveData->car_id;
+
+                                // 履歴の車庫名編集クエリ
+                                $sql = "UPDATE schedule_lease_history SET
+                                        lease_amount = $1,
+                                        lease_start_day = $2,
+                                        lease_end_day = $3,
+                                        edit_day = $4,
+                                        edit_user_id = $5
+                                        WHERE schedule_lease_history_id = $6";
+
+                                $params = [
+                                    $lease_amount,
+                                    $lease_start_day,
+                                    $lease_end_day,
+                                    $today,
+                                    $user_id,
+                                    $schedule_lease_history_id
+                                ];
+
+                                // 実行
+                                $result = pg_query_params($pg_conn, $sql, $params);
+                                if ($result === false) {
+                                    $success = false;
+                                    
+                                }
+
+                                //carsテーブルの自動車税も更新
+                                // $sql2 = "UPDATE cars SET
+                                //     tax = $1,
+                                //     edit_day = $2,
+                                //     edit_user_id = $3
+                                //     WHERE car_id = $4";
+
+                                // $params2 = [
+                                //     $tax,
+                                //     $today,
+                                //     $user_id,
+                                //     $car_id
+                                // ];
+
+                                // $result2 = pg_query_params($pg_conn, $sql2, $params2);
+                                // if ($result2 === false) {
+                                //     $success = false;
+                                // }
+                                   
+                                
+                            }
+
+                            //クエリ成功
+                            if ($success){
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '保存成功'
+                                ];
+   
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+                            //クエリ失敗
+                            else{
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => '保存エラー'
+                                ];
+                            }
+                        }
+                        catch (Exception $ex) {
+                            var_dump($ex);
                             // クエリのロールバック
                             pg_query($pg_conn,"ROLLBACK");
                             pg_close($pg_conn);
