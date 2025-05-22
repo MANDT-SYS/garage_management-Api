@@ -238,7 +238,6 @@
                                 pg_close($pg_conn);
                             }
                     break;
-
                      
                     /// <summery>
                     /// 予約情報が重複して無いか確認(予約変更時)
@@ -317,7 +316,6 @@
                             }
                     break;
                     
-                    
                     // <summery>
                     // BookingGarage・マスター社有車情報入手
                     // </summery>
@@ -390,7 +388,7 @@
                                 b.user_name
                                 FROM cars a
                                 LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id --一時的なユーザーテーブルと結合する
-                                WHERE a.un_useble_day IS NULL
+                                WHERE a.un_useble_day IS NULL AND is_rental IS NOT NULL
                                 ORDER BY a.display_no ASC, a.car_id ASC;
                             ';
  
@@ -417,7 +415,6 @@
                         }
  
                     break;
-
 
                     // <summery>
                     // BookingGarage・マスター社有車情報入手
@@ -647,7 +644,6 @@
                             }
                     break;
 
-
                     // <summery>
                     // BookingGarage・マスター備品情報入手
                     // </summery>
@@ -655,6 +651,50 @@
 
                         try
                         {
+
+                            ////////////////////////////////////////////////////////////////////
+                            // ユーザー情報の取得と、一時的テーブルの作成 //////////////////////////
+                            // curlのセッションを初期化する
+                            $ch = curl_init();
+                            // curlのオプションを設定する
+                            $options = array(
+                            CURLOPT_URL => 'https://system.syowa.com/user-management/api/'.ConstData::API_VER.'/user',
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_HTTPHEADER => $getExternalHeaders,
+                            );
+                            curl_setopt_array($ch, $options);
+                            // curlを実行し、レスポンスデータを保存する
+                            $response  = curl_exec($ch);
+                            $user_arr = json_decode($response,true);
+                            // curlセッションを終了する
+                            curl_close($ch);
+ 
+                            //一時的なテーブルの作成
+                            pg_query("
+                            CREATE TEMP TABLE temp_user_table(
+                                user_id INTEGER,
+                                user_name TEXT
+                                )
+                            ");
+ 
+                            // 一時的なテーブルにユーザー情報を挿入
+                            foreach ($user_arr["data"] as $userData) {
+                                //var_dump($orderData);
+                                pg_query("
+                                    INSERT INTO temp_user_table(
+                                        user_id,
+                                        user_name
+                                    )
+                                    VALUES (
+                                        '{$userData["userId"]}',
+                                        '{$userData["familyName"]} {$userData["givenName"]}'
+                                    )
+                                ");
+                                }
+ 
+                            ////////////////////////////////////////////////////////////////////
+                            ////////////////////////////////////////////////////////////////////
+
 
                             // マスター情報取得クエリ
                             $sql_1 = "SELECT
@@ -670,7 +710,7 @@
                                 ) AS word_id(equipment_category_id_re) ON true
                                 LEFT JOIN cars_equipment_category b ON b.equipment_category_id = equipment_category_id_re::INTEGER
 
-                                WHERE a.un_useble_day IS NULL
+                                WHERE a.un_useble_day IS NULL AND is_rental IS NOT NULL
 
                                 GROUP BY
                                     a.car_id,
@@ -683,10 +723,28 @@
 
                             // 実行
                             $result1 = pg_query($sql_1);
-                            $MasterBookingData = pg_fetch_all($result1);
+                            $MasterData = pg_fetch_all($result1);
+
+                            $sql_2 = 'SELECT 
+                                a.equipment_category_name,
+                                a.create_day,
+                                b.user_name AS create_user_name,
+                                a.edit_day,
+                                c.user_name AS edit_user_name
+                                
+                                FROM cars_equipment_category a
+                                LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id
+                                LEFT JOIN temp_user_table c ON a.edit_user_id = c.user_id
+
+                                ORDER BY a.equipment_category_id ASC;   
+                            ';
+
+                            // 実行
+                            $result2 = pg_query($sql_2);
+                            $EquipmentList = pg_fetch_all($result2);
 
                             //オブジェクト配列
-                            $all_data = ['data' => ['MasterGarage' => $MasterBookingData] ]; 
+                            $all_data = ['data' => ['MasterGarage' => $MasterData,'EquipmentListData' => $EquipmentList] ]; 
 
         
                             //クエリのコミット
@@ -722,7 +780,7 @@
 
                                 FROM cars a
 
-                                WHERE a.un_useble_day IS NULL
+                                WHERE a.un_useble_day IS NULL AND is_rental IS NOT NULL
                                 ORDER BY a.car_id ASC;
                             ";
              
@@ -829,7 +887,67 @@
 
                                 FROM cars 
 
-                                WHERE un_useble_day IS NULL
+                                WHERE un_useble_day IS NULL AND is_rental IS NOT NULL
+                                ORDER BY car_id ASC
+                            ';
+             
+
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterData = pg_fetch_all($result1);
+
+                            $sql_2 = 'SELECT
+                            car_id,
+                            car_name,
+                            car_no
+
+                            FROM cars 
+
+                            WHERE un_useble_day IS NOT NULL
+                            ORDER BY car_id ASC
+                        ';
+
+                            // 実行
+                            $result2 = pg_query($sql_2);
+                            $DELETEMasterData = pg_fetch_all($result2);
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterData, 'DELETEMasterGarage' => $DELETEMasterData] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
+                    // マスター車情報入手(HistroySearch画面)
+                    // </summery>
+                    case 'GetMasterCarCategoryETCPlus':
+
+                        try
+                        {
+                            
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                car_id,
+                                car_name,
+                                car_no
+
+                                FROM cars 
+
+                                WHERE un_useble_day IS NULL 
                                 ORDER BY car_id ASC
                             ';
              
@@ -1012,7 +1130,7 @@
                     break;
 
                     // <summery>
-                    // 過去の予約履歴確認(BookingHistroySearch画面)
+                    // 過去の予約履歴確認(MirageHistroySearch画面)
                     // </summery>
                     case 'GetMileageHistoryAllInfo':
 
@@ -1160,7 +1278,7 @@
                                 is_rental
 
                                 FROM cars
-                                WHERE un_useble_day IS NULL
+                                WHERE un_useble_day IS NULL AND is_rental IS NOT NULL
                             ';
  
                             // 実行
@@ -1214,7 +1332,7 @@
 
                                 FROM cars a
                                 LEFT JOIN cars_tires b ON a.car_id = b.car_id
-                                WHERE un_useble_day IS NULL AND b.useble_change_day IS NULL
+                                WHERE un_useble_day IS NULL AND b.useble_change_day IS NULL AND is_rental IS NOT NULL
                             ';
  
                             // 実行
@@ -1259,7 +1377,7 @@
 
                                 FROM cars 
 
-                                WHERE un_useble_day IS NULL
+                                WHERE un_useble_day IS NULL AND is_rental IS NOT NULL
                                 ORDER BY car_id ASC
                             ';
              
@@ -1490,7 +1608,7 @@
                    
                                 FROM cars a
                                 LEFT JOIN cars_check_list b ON a.cars_check_list_id = b.cars_check_list_id
-                                WHERE un_useble_day IS NULL 
+                                WHERE un_useble_day IS NULL AND is_rental IS NOT NULL
                             ';
                    
                             // 実行
@@ -1718,6 +1836,331 @@
 
 
                     break;
+
+                    /// <summary>
+                    /// 最新の給油情報を取得する
+                    /// </summary>
+                    case 'GetOilChargeInfo':
+                   
+                        try
+                        {
+                   
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                a.car_id,
+                                a.car_name,
+                                a.car_no,
+                                a.garages,
+                                a.is_rental,
+                                b.car_name as etc_car_name,
+                                b.oil_quantity,
+                                b.oil_unit_price,
+                                b.oil_type,
+                                b.oil_all_price,
+                                b.oil_charge_place,
+                                b.oil_charge_day
+                   
+                   
+                                FROM cars a
+                                LEFT JOIN cars_oil_charge_history b ON a.oil_charge_id = b.oil_charge_id
+                                WHERE un_useble_day IS NULL 
+                                ORDER BY a.car_id ASC
+                            ';
+                   
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterBookingData = pg_fetch_all($result1);
+                   
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterBookingData] ];
+                   
+                   
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+                   
+                   
+                        } 
+                        catch (Exception $ex) {
+                   
+                            var_dump($ex);
+                   
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+                   
+                        }
+                   
+                   
+                    break;
+
+                    // <summery>
+                    // 過去の給油履歴確認(OilChargeHistroy画面)
+                    // </summery>
+                    case 'GetOilChargeHistoryAllInfo':
+
+                        $SelectCheckDataArray = $array_data->SerchHistory;
+
+                        try
+                        {
+                            ////////////////////////////////////////////////////////////////////
+                            // ユーザー情報の取得と、一時的テーブルの作成 //////////////////////////
+                            // curlのセッションを初期化する
+                            $ch = curl_init();
+                            // curlのオプションを設定する
+                            $options = array(
+                            CURLOPT_URL => 'https://system.syowa.com/user-management/api/'.ConstData::API_VER.'/user',
+                            CURLOPT_RETURNTRANSFER => true,
+                            CURLOPT_HTTPHEADER => $getExternalHeaders,
+                            );
+                            curl_setopt_array($ch, $options);
+                            // curlを実行し、レスポンスデータを保存する
+                            $response  = curl_exec($ch);
+                            $user_arr = json_decode($response,true);
+                            // curlセッションを終了する
+                            curl_close($ch);
+ 
+                            //一時的なテーブルの作成
+                            pg_query("
+                            CREATE TEMP TABLE temp_user_table(
+                                user_id INTEGER,
+                                user_name TEXT
+                                )
+                            ");
+ 
+                            // 一時的なテーブルにユーザー情報を挿入
+                            foreach ($user_arr["data"] as $userData) {
+                                //var_dump($orderData);
+                                pg_query("
+                                    INSERT INTO temp_user_table(
+                                        user_id,
+                                        user_name
+                                    )
+                                    VALUES (
+                                        '{$userData["userId"]}',
+                                        '{$userData["familyName"]} {$userData["givenName"]}'
+                                    )
+                                ");
+                                }
+ 
+                            ////////////////////////////////////////////////////////////////////
+                            ////////////////////////////////////////////////////////////////////
+ 
+
+
+                            $ForBellow = $SelectCheckDataArray->ForBellow;
+                            $PullCars = $SelectCheckDataArray->PullCars;
+                            $CarId = $SelectCheckDataArray->CarId;
+                            $StartDate = $SelectCheckDataArray->StartDate;
+                            $EndDate = $SelectCheckDataArray->EndDate;
+                            
+                            $conditions = ["a.car_id IS NOT NULL"]; // ベース条件(この条件はSQLの為適当医に入れる)
+                            $params = []; // パラメータ配列
+                            $paramIndex = 1;
+                            
+                            // ForBellowがtrueなら日付フィルタを追加
+                            if ($ForBellow === false) {
+                                $conditions[] = "a.oil_charge_day >= $" . $paramIndex++;
+                                $params[] = $StartDate;
+                            
+                                $conditions[] = "a.oil_charge_day <= $" . $paramIndex++;
+                                $params[] = $EndDate;
+                            }
+                            
+                            // PullCarsが「全車種」以外なら車両フィルタを追加
+                            if ($PullCars !== "全車種") {
+                                $conditions[] = "b.car_id = $" . $paramIndex++;
+                                $params[] = $CarId;
+                            }
+                            
+                            // 条件を結合
+                            $whereClause = implode(" AND ", $conditions);
+                            
+                            // SQLを組み立て
+                            $sql_1 = "
+                            SELECT
+                                a.car_name,
+                                b.car_no,
+                                a.oil_charge_place,
+                                a.oil_type,
+                                a.oil_quantity,
+                                a.oil_unit_price,
+                                a.oil_all_price,
+                                a.oil_charge_day,
+                                a.memo,
+                                a.add_day,
+                                a.edit_day,
+                                c.user_name as add_user_name,
+                                d.user_name as edit_user_name
+                                
+
+
+                            FROM cars_oil_charge_history a
+                            LEFT JOIN cars b USING(car_id)
+                            LEFT JOIN temp_user_table c ON a.add_user_id = c.user_id
+                            LEFT JOIN temp_user_table d ON a.edit_user_id = d.user_id
+                            WHERE $whereClause
+                            ORDER BY display_no ASC, b.car_id ASC;
+                            ";
+                            
+                            // 実行
+                            if ($PullCars == "全車種" && $ForBellow === false) {
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+                            }
+                            else{
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+                            }
+                            $HistoryMileageData = pg_fetch_all($result1);
+
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['HistoryMilageData' => $HistoryMileageData] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+
+                    break;
+
+                    /// <sumeery>
+                    /// 変更したい旧情報を取得する
+                    /// </summary>
+                    case 'GetOilChargeEditData':
+
+                        try
+                        {
+                   
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                a.car_id,
+                                a.car_name,
+                                a.car_no,
+                                a.oil_charge_id,
+                                b.car_name as etc_car_name,
+                                b.oil_charge_place,
+                                b.oil_type,
+                                b.oil_quantity,
+                                b.oil_unit_price,
+                                b.oil_charge_day,
+                                b.memo
+                   
+                   
+                                FROM cars a
+                                LEFT JOIN cars_oil_charge_history b ON a.oil_charge_id = b.oil_charge_id
+                                WHERE un_useble_day IS NULL AND a.oil_charge_id IS NOT NULL
+                                ORDER BY car_id ASC
+                            ';
+                   
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $ChargeOilEditData = pg_fetch_all($result1);
+
+                            $sql_2 = 'SELECT
+                                etc_id,
+                                etc_name
+
+                                FROM cars_etc_name 
+
+                                WHERE deleted_day IS NULL
+                                ORDER BY etc_id ASC
+                            ';
+                   
+                   
+                            // 実行
+                            $result2 = pg_query($sql_2);
+                            $ETC = pg_fetch_all($result2);
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $ChargeOilEditData, 'EtcOilsData' => $ETC] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+                   
+                   
+                        } 
+                        catch (Exception $ex) {
+                   
+                            var_dump($ex);
+                   
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+                   
+                        }
+
+                    break;
+
+                    // <summery>
+                    // マスター車情報入手(給油情報登録画面)
+                    // </summery>
+                    case 'GetOilMasterData':
+
+                        try
+                        {
+                            
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                car_id,
+                                car_name,
+                                car_no
+
+                                FROM cars 
+
+                                WHERE un_useble_day IS NULL
+                                ORDER BY car_id ASC
+                            ';
+             
+
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterData = pg_fetch_all($result1);
+
+                            $sql_2 = 'SELECT
+                            etc_id,
+                            etc_name
+
+                            FROM cars_etc_name 
+
+                            WHERE deleted_day IS NULL
+                            ORDER BY etc_id ASC
+                            ';
+
+                            // 実行
+                            $result2 = pg_query($sql_2);
+                            $ETC = pg_fetch_all($result2);
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterData, 'EtcCarsData' => $ETC] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
                     // <summery>
                     // スケジュール
                     // BookingGarage・マスター社有車情報入手
@@ -1854,6 +2297,7 @@
                         }
  
                     break;
+
                     // <summery>
                     // スケジュール
                     // 予定、車庫履歴、購入情報（自動車税）、リース情報（金額・期間）（期ごと管理のデータ）取得
@@ -1976,7 +2420,6 @@
                         }
  
                     break;
-
 
                     // <summery>
                     // スケジュール
