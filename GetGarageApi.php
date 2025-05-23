@@ -384,7 +384,6 @@
                                 a.new_mileage,
                                 a.delivery_day,
                                 a.first_day,
-                                a.price,
                                 b.user_name
                                 FROM cars a
                                 LEFT JOIN temp_user_table b ON a.create_user_id = b.user_id --一時的なユーザーテーブルと結合する
@@ -2002,7 +2001,7 @@
                             LEFT JOIN temp_user_table c ON a.add_user_id = c.user_id
                             LEFT JOIN temp_user_table d ON a.edit_user_id = d.user_id
                             WHERE $whereClause
-                            ORDER BY display_no ASC, b.car_id ASC;
+                            ORDER BY a.car_id ASC, a.oil_charge_id ASC;
                             ";
                             
                             // 実行

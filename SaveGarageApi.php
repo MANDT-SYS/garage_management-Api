@@ -341,10 +341,6 @@
                                 ? date('Y-m-d', strtotime($SaveData->First_day))
                                 : null;
                         
-                                
-                            $Price = $SaveData->Price;
-                            $Tax = $SaveData->Tax;
-
 
                             // 使用制限日が存在する場合
                             if (!empty($SaveData->limited_day)) {
@@ -365,9 +361,7 @@
                                     unlimited_day,
                                     limited_day,
                                     delivery_day,
-                                    first_day,
-                                    price,
-                                    tax
+                                    first_day
                                     )
                                     VALUES(
                                     '$CarName',
@@ -383,9 +377,7 @@
                                     '$UnLimited',
                                     '$Limited',
                                     " . ($Delivery_day ? "'$Delivery_day'" : "NULL") . ",
-                                    " . ($First_day ? "'$First_day'" : "NULL") . ",
-                                    '$Price',
-                                    '$Tax'
+                                    " . ($First_day ? "'$First_day'" : "NULL") . "
                                     )
                                 ";
                             }
@@ -405,9 +397,7 @@
                                     use_display,
                                     unlimited_day,
                                     delivery_day,
-                                    first_day,
-                                    price,
-                                    tax
+                                    first_day
                                     )
                                     VALUES(
                                     '$CarName',
@@ -422,9 +412,7 @@
                                     $UseDisplay,
                                     '$UnLimited',
                                     " . ($Delivery_day ? "'$Delivery_day'" : "NULL") . ",
-                                    " . ($First_day ? "'$First_day'" : "NULL") . ",
-                                    '$Price',
-                                    '$Tax'
+                                    " . ($First_day ? "'$First_day'" : "NULL") . "
                                     )
                                 ";
                             }   
@@ -499,7 +487,6 @@
 
                             $Delivery_day = date('Y-m-d', strtotime($SaveData->Delivery_day));
                             $First_day = date('Y-m-d', strtotime($SaveData->First_day));
-                            $Price = $SaveData->Price;
 
                     
                             // ベースの UPDATE 文
@@ -516,7 +503,6 @@
                                 unlimited_day = '$UnlimitedDay',
                                 delivery_day = " . ($Delivery_day ? "'$Delivery_day'" : "NULL") . ",
                                 first_day = " . ($First_day ? "'$First_day'" : "NULL") . ",
-                                price = '$Price',
                                 limited_day = " . ($LimitedDay ? "'$LimitedDay'" : "NULL");
                     
                             // 走行距離があれば new_mileage も更新
