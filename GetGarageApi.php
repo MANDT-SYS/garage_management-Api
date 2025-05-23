@@ -1978,8 +1978,11 @@
                             // SQLを組み立て
                             $sql_1 = "
                             SELECT
+                                a.car_id,
+                                a.oil_charge_id,
                                 a.car_name,
                                 b.car_no,
+                                b.car_name as display_car_name,
                                 a.oil_charge_place,
                                 a.oil_type,
                                 a.oil_quantity,

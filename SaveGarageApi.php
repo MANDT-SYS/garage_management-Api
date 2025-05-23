@@ -1641,6 +1641,97 @@
                     break;
 
                     // <summery>
+                    // 給油情報HistoryDataを変更
+                    // </summery>
+                    case 'HistoryOilChangeDataEdit':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+                        $UserId = $array_data->UserId;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+                            $ChangeId = $SaveData->Change_id;
+                            $CarName = $SaveData->CarName;
+                            $Place = $SaveData->Place;
+                            $OilType = $SaveData->Type;
+                            $OilQuantity = $SaveData->Quantity;
+                            $UnitPrice = $SaveData->UnitPrice;
+                            $AllPrice = $SaveData->AllPrice;
+                            $ChargeDay = date('Y-m-d', strtotime($SaveData->ChangeDay));
+                            $Note = $SaveData->Memo;
+
+                            // ベースの UPDATE 文(マスター情報問い合わせ)
+                            $sql = "UPDATE cars_oil_charge_history SET
+                                car_name = $1,
+                                oil_charge_place = $2,
+                                oil_type = $3,
+                                oil_quantity = $4,
+                                oil_unit_price = $5,
+                                oil_all_price = $6,
+                                oil_charge_day = $7,
+                                memo = $8,
+                                edit_day = $9,
+                                edit_user_id = $10
+                                WHERE oil_charge_id = $11
+                            ";
+
+                            // パラメータセット
+                            $params = [
+                                $CarName,
+                                $Place,
+                                $OilType,
+                                $OilQuantity,
+                                $UnitPrice,
+                                (int)$AllPrice,
+                                $ChargeDay,
+                                $Note,
+                                $today,
+                                (int)$UserId,
+                                (int)$ChangeId
+                            ];
+
+
+                            // --- 実行 ---
+                            $result = pg_query_params($pg_conn, $sql, $params);
+
+
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => $returnMessage
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+    
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
                     // スケジュール
                     // 予定の登録・編集・削除
                     // </summery>
