@@ -1718,6 +1718,142 @@
                     break;
 
                     // <summery>
+                    // その他の車
+                    // </summery>
+                    case 'EditETC_Cars':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+                        $UserId = $array_data->UserId;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+
+                            $ChangeId = $SaveData->ChangeId;
+                            $ChangeName = $SaveData->ChangeName;
+
+
+                            // マスター情報取得クエリ
+                            $sql = "UPDATE cars_etc_name SET
+                                etc_name = '$ChangeName',
+                                edit_day = '$today',
+                                edit_user_id = '$UserId'
+
+
+                                WHERE etc_id = '$ChangeId'
+                            ";
+                            
+
+                            // 実行
+                            $result1 = pg_query($pg_conn, $sql);
+
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => $returnMessage
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+    
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
+                    // マスター・その他の車追加
+                    // </summery>
+                    case 'ETC_Cars_CategoryAdd':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+                        $UserId = $array_data->UserId;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try {
+
+                            foreach ($SaveData as $item) {
+
+                                // トランザクション開始
+                                pg_query($pg_conn, "BEGIN");
+
+                                $ETC_Category = $item->ETC_Category;
+
+                                // タイヤ交換履歴問い合わせ
+                                $sql1 = "INSERT INTO cars_etc_name (
+                                    etc_name,
+                                    add_day,
+                                    add_user_id
+                                ) VALUES (
+                                    $1,
+                                    $2,
+                                    $3
+                                )";
+
+                                // パラメータセット
+                                $params1 = [
+                                    $ETC_Category, 
+                                    $today, 
+                                    (int)$UserId
+                                ];
+
+                        
+                                // --- 実行 ---
+                                $result1 = pg_query_params($pg_conn, $sql1, $params1);
+                                
+                        
+                                // クエリ失敗時のチェック
+                                if ($result1 === false) {
+                                    $all_data = [
+                                        'status' => 0,
+                                        'data' => [pg_last_error($pg_conn)],
+                                        'message' => '登録に失敗しました。'
+                                    ];
+                                    pg_query($pg_conn, "ROLLBACK");
+                                } else {
+                                    $all_data = [
+                                        'status' => 1,
+                                        'data' => [true],
+                                        'message' => '登録成功'
+                                    ];
+                                    pg_query($pg_conn, "COMMIT");
+                                }
+                            }
+
+                        } catch (Exception $ex) {
+                            var_dump($ex);
+                            // クエリのロールバック
+                            pg_query($pg_conn, "ROLLBACK");
+                            pg_close($pg_conn);
+                        }
+
+                    break;
+
+                    // <summery>
                     // スケジュール
                     // 予定の登録・編集・削除
                     // </summery>

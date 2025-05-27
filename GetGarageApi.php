@@ -2036,7 +2036,7 @@
                     break;
 
                     /// <sumeery>
-                    /// 変更したい旧情報を取得する
+                    /// 変更したい旧(給油)情報を取得する
                     /// </summary>
                     case 'GetOilChargeEditData':
 
@@ -2104,6 +2104,68 @@
 
                     break;
 
+                    /// <summery>
+                    /// 備品情報が重複して無いか確認(新規登録時)
+                    /// </summery>
+                    case 'CheckDoubleETC_Cars':
+
+                        // 保存させたいデータ (配列)
+                        $SaveCheckDataArray = $array_data->SaveData;
+
+                        try
+                        {
+
+                            // ✅ すべての重複データをまとめて格納する配列
+                            $allDoubleData = [];
+
+                            // ループ処理で複数レコードを保存
+                            foreach ($SaveCheckDataArray as $SaveData) {
+
+                                $ETC_Category = $SaveData->ETC_Category;
+
+
+                                // マスター情報取得クエリ
+                                $sql_1 = "
+                                SELECT
+                                    etc_name
+                                FROM cars_etc_name
+                                WHERE
+                                etc_name = $1
+                                ORDER BY etc_id ASC;";
+
+                                // $1 = $CarId $2 = "$UseEndDay $UseEndTime" $3 = "$UseStartDay $StartTime"
+                                $params = [
+                                    $ETC_Category
+                                ];
+
+                                // 実行
+                                $result1 = pg_query_params($pg_conn, $sql_1, $params);
+
+                                $rows = pg_fetch_all($result1);
+
+                                // ✅ 結果が false（0件）なら空配列としてスキップ、それ以外はマージ
+                                if ($rows !== false) {
+                                    $allDoubleData = array_merge($allDoubleData, $rows);
+                                }
+                            }
+        
+                                //オブジェクト配列
+                                $all_data = ['data' => ['CheckData' => $allDoubleData] ]; 
+        
+            
+                                //クエリのコミット
+                                pg_query($pg_conn,"COMMIT");
+                            } 
+                            catch (Exception $ex) {
+        
+                                var_dump($ex->getMessage());
+        
+                                // クエリのロールバック
+                                pg_query($pg_conn,"ROLLBACK");
+                                pg_close($pg_conn);
+                            }
+                    break;
+
                     // <summery>
                     // マスター車情報入手(給油情報登録画面)
                     // </summery>
@@ -2161,6 +2223,98 @@
     
                         }
 
+                    break;
+
+                    /// <summary>
+                    /// 最新の給油情報を取得する
+                    /// </summary>
+                    case 'GetETC_CarsInfo':
+                   
+                        try
+                        {
+                   
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                a.etc_id,
+                                a.etc_name
+                   
+                                FROM cars_etc_name a
+                                ORDER BY a.etc_id ASC
+                            ';
+                   
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $MasterBookingData = pg_fetch_all($result1);
+                   
+                            //オブジェクト配列
+                            $all_data = ['data' => ['MasterGarage' => $MasterBookingData] ];
+                   
+                   
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+                   
+                   
+                        } 
+                        catch (Exception $ex) {
+                   
+                            var_dump($ex);
+                   
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+                   
+                        }
+                   
+                   
+                    break;
+
+                    /// <summery>
+                    /// 変更させたいその他の車情報が重複して無いか確認
+                    /// </summery>
+                    case 'CheckDoubleETCEdit':
+
+                        // 保存させたいデータ (配列)
+                        $SaveCheckDataArray = $array_data->SaveData;
+                        $ChangeCategory = $SaveCheckDataArray->ChangeName;
+
+                        try
+                        {
+                            // マスター情報取得クエリ
+                            $sql_1 = "
+                                SELECT
+                                    etc_name
+                                FROM cars_etc_name
+                                WHERE
+                                etc_name = $1
+                                ORDER BY etc_id ASC;";
+
+                            // $1 = $CarId $2 = "$UseEndDay $UseEndTime" $3 = "$UseStartDay $StartTime"
+                            $params = [
+                                $ChangeCategory
+                            ];
+ 
+                            // 実行
+                            $result1 = pg_query_params($pg_conn, $sql_1, $params);
+                            $CheckData = pg_fetch_all($result1);
+ 
+                            //オブジェクト配列
+                            $all_data = ['data' => ['CheckData' => $CheckData] ];
+ 
+       
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+   
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
                     break;
 
                     // <summery>
