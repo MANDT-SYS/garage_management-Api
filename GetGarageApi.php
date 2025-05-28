@@ -2618,6 +2618,53 @@
                         }
  
                     break;
+
+                    /// <sumeery>
+                    /// リリースノートデータを取得
+                    /// </summary>
+                    case 'GetReleaceNoteDatas':
+
+                        try
+                        {
+                            
+                            // マスター情報取得クエリ
+                            $sql_1 = 'SELECT
+                                version_id,
+                                version,
+                                changes,
+                                changes_date,
+                                category
+
+                                FROM release_note_data 
+
+                                ORDER BY version_id DESC
+                            ';
+             
+
+                            // 実行
+                            $result1 = pg_query($sql_1);
+                            $ReleaceNoteData = pg_fetch_all($result1);
+
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['ReleaceData' => $ReleaceNoteData]]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
                     
                     
                 }                     
