@@ -341,10 +341,6 @@
                                 ? date('Y-m-d', strtotime($SaveData->First_day))
                                 : null;
                         
-                                
-                            $Price = $SaveData->Price;
-                            $Tax = $SaveData->Tax;
-
 
                             // 使用制限日が存在する場合
                             if (!empty($SaveData->limited_day)) {
@@ -365,9 +361,7 @@
                                     unlimited_day,
                                     limited_day,
                                     delivery_day,
-                                    first_day,
-                                    price,
-                                    tax
+                                    first_day
                                     )
                                     VALUES(
                                     '$CarName',
@@ -383,9 +377,7 @@
                                     '$UnLimited',
                                     '$Limited',
                                     " . ($Delivery_day ? "'$Delivery_day'" : "NULL") . ",
-                                    " . ($First_day ? "'$First_day'" : "NULL") . ",
-                                    '$Price',
-                                    '$Tax'
+                                    " . ($First_day ? "'$First_day'" : "NULL") . "
                                     )
                                 ";
                             }
@@ -405,9 +397,7 @@
                                     use_display,
                                     unlimited_day,
                                     delivery_day,
-                                    first_day,
-                                    price,
-                                    tax
+                                    first_day
                                     )
                                     VALUES(
                                     '$CarName',
@@ -422,9 +412,7 @@
                                     $UseDisplay,
                                     '$UnLimited',
                                     " . ($Delivery_day ? "'$Delivery_day'" : "NULL") . ",
-                                    " . ($First_day ? "'$First_day'" : "NULL") . ",
-                                    '$Price',
-                                    '$Tax'
+                                    " . ($First_day ? "'$First_day'" : "NULL") . "
                                     )
                                 ";
                             }   
@@ -499,7 +487,6 @@
 
                             $Delivery_day = date('Y-m-d', strtotime($SaveData->Delivery_day));
                             $First_day = date('Y-m-d', strtotime($SaveData->First_day));
-                            $Price = $SaveData->Price;
 
                     
                             // ベースの UPDATE 文
@@ -516,7 +503,6 @@
                                 unlimited_day = '$UnlimitedDay',
                                 delivery_day = " . ($Delivery_day ? "'$Delivery_day'" : "NULL") . ",
                                 first_day = " . ($First_day ? "'$First_day'" : "NULL") . ",
-                                price = '$Price',
                                 limited_day = " . ($LimitedDay ? "'$LimitedDay'" : "NULL");
                     
                             // 走行距離があれば new_mileage も更新
@@ -1636,6 +1622,233 @@
                             pg_query($pg_conn,"ROLLBACK");
                             pg_close($pg_conn);
     
+                        }
+
+                    break;
+
+                    // <summery>
+                    // 給油情報HistoryDataを変更
+                    // </summery>
+                    case 'HistoryOilChangeDataEdit':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+                        $UserId = $array_data->UserId;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+                            $ChangeId = $SaveData->Change_id;
+                            $CarName = $SaveData->CarName;
+                            $Place = $SaveData->Place;
+                            $OilType = $SaveData->Type;
+                            $OilQuantity = $SaveData->Quantity;
+                            $UnitPrice = $SaveData->UnitPrice;
+                            $AllPrice = $SaveData->AllPrice;
+                            $ChargeDay = date('Y-m-d', strtotime($SaveData->ChangeDay));
+                            $Note = $SaveData->Memo;
+
+                            // ベースの UPDATE 文(マスター情報問い合わせ)
+                            $sql = "UPDATE cars_oil_charge_history SET
+                                car_name = $1,
+                                oil_charge_place = $2,
+                                oil_type = $3,
+                                oil_quantity = $4,
+                                oil_unit_price = $5,
+                                oil_all_price = $6,
+                                oil_charge_day = $7,
+                                memo = $8,
+                                edit_day = $9,
+                                edit_user_id = $10
+                                WHERE oil_charge_id = $11
+                            ";
+
+                            // パラメータセット
+                            $params = [
+                                $CarName,
+                                $Place,
+                                $OilType,
+                                $OilQuantity,
+                                $UnitPrice,
+                                (int)$AllPrice,
+                                $ChargeDay,
+                                $Note,
+                                $today,
+                                (int)$UserId,
+                                (int)$ChangeId
+                            ];
+
+
+                            // --- 実行 ---
+                            $result = pg_query_params($pg_conn, $sql, $params);
+
+
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => $returnMessage
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+    
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
+                    // その他の車
+                    // </summery>
+                    case 'EditETC_Cars':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+                        $UserId = $array_data->UserId;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+
+                            $ChangeId = $SaveData->ChangeId;
+                            $ChangeName = $SaveData->ChangeName;
+
+
+                            // マスター情報取得クエリ
+                            $sql = "UPDATE cars_etc_name SET
+                                etc_name = '$ChangeName',
+                                edit_day = '$today',
+                                edit_user_id = '$UserId'
+
+
+                                WHERE etc_id = '$ChangeId'
+                            ";
+                            
+
+                            // 実行
+                            $result1 = pg_query($pg_conn, $sql);
+
+                             //クエリ失敗
+                            if ($result === false) {
+                                $all_data = [
+                                'status' => 0,
+                                'data' => [pg_last_error($pg_conn)],
+                                'message' => $returnMessage
+                                ];
+                            }
+                            //クエリ成功
+                            else{
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+    
+                                //コミット
+                                pg_query($pg_conn,"COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
+                    // マスター・その他の車追加
+                    // </summery>
+                    case 'ETC_Cars_CategoryAdd':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+                        $UserId = $array_data->UserId;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try {
+
+                            foreach ($SaveData as $item) {
+
+                                // トランザクション開始
+                                pg_query($pg_conn, "BEGIN");
+
+                                $ETC_Category = $item->ETC_Category;
+
+                                // タイヤ交換履歴問い合わせ
+                                $sql1 = "INSERT INTO cars_etc_name (
+                                    etc_name,
+                                    add_day,
+                                    add_user_id
+                                ) VALUES (
+                                    $1,
+                                    $2,
+                                    $3
+                                )";
+
+                                // パラメータセット
+                                $params1 = [
+                                    $ETC_Category, 
+                                    $today, 
+                                    (int)$UserId
+                                ];
+
+                        
+                                // --- 実行 ---
+                                $result1 = pg_query_params($pg_conn, $sql1, $params1);
+                                
+                        
+                                // クエリ失敗時のチェック
+                                if ($result1 === false) {
+                                    $all_data = [
+                                        'status' => 0,
+                                        'data' => [pg_last_error($pg_conn)],
+                                        'message' => '登録に失敗しました。'
+                                    ];
+                                    pg_query($pg_conn, "ROLLBACK");
+                                } else {
+                                    $all_data = [
+                                        'status' => 1,
+                                        'data' => [true],
+                                        'message' => '登録成功'
+                                    ];
+                                    pg_query($pg_conn, "COMMIT");
+                                }
+                            }
+
+                        } catch (Exception $ex) {
+                            var_dump($ex);
+                            // クエリのロールバック
+                            pg_query($pg_conn, "ROLLBACK");
+                            pg_close($pg_conn);
                         }
 
                     break;
