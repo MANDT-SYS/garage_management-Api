@@ -2248,7 +2248,7 @@
                                 --備品テーブルと結合する
                                 LEFT JOIN cars_equipment_category d ON d.equipment_category_id = equipment_category_id_re::INTEGER
                                 --CROSS JOIN LATERAL UNNEST(string_to_array(a.equipment_category_id, ',')) AS equipment_category_id(equipment_category_id_re)
-                                WHERE a.un_useble_day IS NULL
+                                WHERE a.un_useble_day IS NULL AND is_rental IS NOT NULL
                                 GROUP BY
                                 a.car_id,
                                 a.car_name,

@@ -1708,7 +1708,7 @@
                                 // マスター情報取得クエリ
                                 $sql = "UPDATE schedule SET
                                 delete_day = $1,
-                                delete_user_id = $2,
+                                delete_user_id = $2
                                 WHERE schedule_id = $3
                                 ";
                                $params = [
@@ -1815,8 +1815,8 @@
                                 // マスター情報取得クエリ
                                 $sql = "UPDATE schedule_title SET
                                 delete_day = $1,
-                                delete_user_id = $2,
-                                WHERE schedule_id = $3
+                                delete_user_id = $2
+                                WHERE title_id = $3
                                 ";
                                $params = [
                                 $today,
