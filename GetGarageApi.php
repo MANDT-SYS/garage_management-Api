@@ -2667,6 +2667,98 @@
 
                     break;
                     
+                    // <summery>
+                    // メイン画面_タイヤの履き替え情報・車検情報入手
+                    // </summery>
+                    case 'GetMainData':
+
+                        // 検索させたいデータ
+                        $search_data = $array_data->SearchData;
+
+                        try
+                        {
+
+                            // 指定条件を定義する
+                            $Today = $search_data->Today;
+                            $ThreeMonthsLater = $search_data->ThreeMonthsLater;
+                            $Now_WareTires = $search_data->Now_WareTires;// Trueなら夏タイヤをはいてなければいけない
+
+                            // boolean変換
+                            $WHERE_Now_WareTires = $Now_WareTires ? 'false' : 'true';
+
+
+                            /// <sql>
+                            /// マスター情報取得クエリ
+                            /// </sql>
+                            $sql_1 = 'SELECT
+                                a.car_name,
+                                a.car_no,
+                                b.check_car_day,
+                                b.next_check_car_day
+
+
+                                FROM cars a
+                                LEFT JOIN cars_check_list b USING(cars_check_list_id)
+                                WHERE b.check_car_day IS NOT NULL AND b.next_check_car_day >= $1 AND b.next_check_car_day <= $2
+
+                                ORDER BY a.car_id ASC ;
+                            ';
+
+                            
+                            // WHERE文の条件指定
+                            $params = [
+                                $Today,
+                                $ThreeMonthsLater
+                            ];
+
+
+                            // 実行
+                            $result1 = pg_query_params($pg_conn, $sql_1, $params);
+                            $CheckCarsData = pg_fetch_all($result1);
+
+
+
+                            /// <sql>                            
+                            /// タイヤ情報取得
+                            /// </sql>
+                            $sql_2 = 'SELECT 
+                                car_name,
+                                car_no
+
+                                FROM cars
+
+                                WHERE is_rental IS NOT NULL AND use_season_summer_tires = $1
+                                ORDER BY car_id ASC;   
+                            ';
+
+                            // WHERE文の条件指定
+                            $params2 = [
+                                $WHERE_Now_WareTires
+                            ];
+                            
+                            // 実行
+                            $result2 = pg_query_params($pg_conn, $sql_2, $params2);
+                            $TiresData = pg_fetch_all($result2);
+
+                            //オブジェクト配列
+                            $all_data = ['data' => ['CheckCarsData' => $CheckCarsData,'TiresData' => $TiresData] ]; 
+
+        
+                            //クエリのコミット
+                            pg_query($pg_conn,"COMMIT");
+    
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
                     
                 }                     
             }
