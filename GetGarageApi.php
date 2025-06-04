@@ -2506,28 +2506,29 @@
  
                             $scheduleGarageHistoryData = pg_fetch_all($result2);
 
-                            //◎◎◎◎◎◎購入情報（自動車税）履歴情報取得クエリ◎◎◎◎◎◎
+                            //◎◎◎◎◎◎購入情報（購入金額・自動車税）履歴情報取得クエリ◎◎◎◎◎◎
                             $sql3 = 'SELECT
-                                schedule_tax_history_id,
-                                tax,
+                                schedule_purchase_history_id,
+                                purchase_amount,
+                                purchase_tax,
                                 car_id,
                                 fiscal_year
                                 FROM (
                                     SELECT
                                         *,
                                         --各 car_id ごとにIDが大きい順に番号を付ける
-                                        ROW_NUMBER() OVER (PARTITION BY car_id ORDER BY schedule_tax_history_id DESC) AS rn
-                                    FROM schedule_tax_history
+                                        ROW_NUMBER() OVER (PARTITION BY car_id ORDER BY schedule_purchase_history_id DESC) AS rn
+                                    FROM schedule_purchase_history
                                     WHERE fiscal_year = $1
                                 ) AS sub
                                 --各 car_id ごとに上位1件を取得
                                 WHERE rn <= 1
-                                ORDER BY car_id ASC, schedule_tax_history_id DESC';
+                                ORDER BY car_id ASC, schedule_purchase_history_id DESC';
  
                             // 実行（プレースホルダを使って安全に）
                             $result3 = pg_query_params($pg_conn, $sql3, [$fiscal_year]);
  
-                            $scheduleTaxHistoryData = pg_fetch_all($result3);
+                            $schedulePurchaseHistoryData = pg_fetch_all($result3);
 
                              //◎◎◎◎◎◎リース情報（金額・期間）履歴情報取得クエリ◎◎◎◎◎◎
                             $sql4 = 'SELECT
@@ -2558,7 +2559,7 @@
                             $all_data = [
                                 'schedule' => $scheduleData,
                                 'garage' => $scheduleGarageHistoryData,
-                                'tax' => $scheduleTaxHistoryData,
+                                'purchase' => $schedulePurchaseHistoryData,
                                 'lease' => $scheduleLeaseHistoryData
                             ];
                             

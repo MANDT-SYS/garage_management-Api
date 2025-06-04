@@ -2220,9 +2220,9 @@
                     
                     // <summery>
                     // スケジュール
-                    // 購入情報（自動車税）履歴の登録・編集
+                    // 購入情報（金額・自動車税）履歴の登録・編集
                     // </summery>
-                    case 'scheduleCarTaxSave':
+                    case 'scheduleCarPurchaseSave':
  
                         // 保存させたいデータ
                         $SaveData = $array_data -> SaveData;
@@ -2237,18 +2237,19 @@
                             $save_type = $SaveData->save_type;
                             //新規登録
                             if($save_type == "新規登録"){
-                                $tax = $SaveData->tax;
+                                $purchase_amount = $SaveData->purchase_amount;
+                                $purchase_tax = $SaveData->purchase_tax;
                                 $car_id = $SaveData->car_id;
                                 $fiscal_year = $SaveData->fiscal_year;
                                 $user_id = $SaveData->user_id;
                            
                                 // 履歴登録（現在の車庫（最新））登録クエリ
-                                $sql1 = "INSERT INTO schedule_tax_history (
-                                    tax,car_id, fiscal_year, create_day, create_user_id
+                                $sql1 = "INSERT INTO schedule_purchase_history (
+                                    purchase_tax,car_id, fiscal_year, create_day, create_user_id,purchase_amount
                                 ) VALUES (
-                                    $1, $2, $3, $4, $5
+                                    $1, $2, $3, $4, $5, $6
                                 )";
-                                $params = [$tax,$car_id, $fiscal_year, $today, $user_id];
+                                $params = [$purchase_tax,$car_id, $fiscal_year, $today, $user_id,$purchase_amount];
 
                                 // 実行
                                 $result = pg_query_params($pg_conn, $sql1, $params);
@@ -2261,14 +2262,16 @@
                                 $sql2 = "UPDATE cars SET
                                     tax = $1,
                                     edit_day = $2,
-                                    edit_user_id = $3
+                                    edit_user_id = $3,
+                                    price = $5
                                     WHERE car_id = $4";
 
                                 $params2 = [
-                                    $tax,
+                                    $purchase_tax,
                                     $today,
                                     $user_id,
-                                    $car_id
+                                    $car_id,
+                                    $purchase_amount
                                 ];
 
                                 $result2 = pg_query_params($pg_conn, $sql2, $params2);
@@ -2279,23 +2282,26 @@
                             }
                             //編集
                             else{
-                                $tax = $SaveData->tax;
-                                $schedule_tax_history_id = $SaveData->schedule_tax_history_id;
+                                $purchase_amount = $SaveData->purchase_amount;
+                                $purchase_tax = $SaveData->purchase_tax;
+                                $schedule_purchase_history_id = $SaveData->schedule_purchase_history_id;
                                 $user_id = $SaveData->user_id;
                                 $car_id = $SaveData->car_id;
 
                                 // 履歴の車庫名編集クエリ
-                                $sql = "UPDATE schedule_tax_history SET
-                                        tax = $1,
+                                $sql = "UPDATE schedule_purchase_history SET
+                                        purchase_tax = $1,
                                         edit_day = $2,
-                                        edit_user_id = $3
-                                        WHERE schedule_tax_history_id = $4";
+                                        edit_user_id = $3,
+                                        purchase_amount = $5
+                                        WHERE schedule_purchase_history_id = $4";
 
                                 $params = [
-                                    $tax,
+                                    $purchase_tax,
                                     $today,
                                     $user_id,
-                                    $schedule_tax_history_id
+                                    $schedule_purchase_history_id,
+                                    $purchase_amount
                                 ];
 
                                 // 実行
@@ -2309,14 +2315,16 @@
                                 $sql2 = "UPDATE cars SET
                                     tax = $1,
                                     edit_day = $2,
-                                    edit_user_id = $3
+                                    edit_user_id = $3,
+                                    price = $5
                                     WHERE car_id = $4";
 
                                 $params2 = [
-                                    $tax,
+                                    $purchase_tax,
                                     $today,
                                     $user_id,
-                                    $car_id
+                                    $car_id,
+                                    $purchase_amount
                                 ];
 
                                 $result2 = pg_query_params($pg_conn, $sql2, $params2);
