@@ -1278,6 +1278,7 @@
 
                                 FROM cars
                                 WHERE un_useble_day IS NULL AND is_rental IS NOT NULL
+                                ORDER BY car_id ASC
                             ';
  
                             // 実行
@@ -1332,6 +1333,7 @@
                                 FROM cars a
                                 LEFT JOIN cars_tires b ON a.car_id = b.car_id
                                 WHERE un_useble_day IS NULL AND b.useble_change_day IS NULL AND is_rental IS NOT NULL
+                                ORDER BY a.car_id ASC
                             ';
  
                             // 実行
@@ -1607,7 +1609,8 @@
                    
                                 FROM cars a
                                 LEFT JOIN cars_check_list b ON a.cars_check_list_id = b.cars_check_list_id
-                                WHERE un_useble_day IS NULL AND is_rental IS NOT NULL
+                                WHERE un_useble_day IS NULL AND is_rental IS NOT NULL 
+                                ORDER BY a.car_id ASC
                             ';
                    
                             // 実行
