@@ -2383,6 +2383,8 @@
                                 a.is_rental,
                                 a.unlimited_day,
                                 a.limited_day,
+                                a.lease_start_day,
+                                a.lease_end_day,
                                 a.new_mileage,
                                 a.delivery_day,
                                 a.first_day,
