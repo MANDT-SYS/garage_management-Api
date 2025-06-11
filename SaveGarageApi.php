@@ -1218,6 +1218,105 @@
                     // <summery>
                     // 車検情報の保存
                     // </summery>
+                    case 'MirageInsert':
+
+                        // 保存させたいデータ
+                        $SaveData = $array_data -> SaveData;
+
+                        // 現在の日時
+                        $today = date('Y-m-d H:i:s');
+
+                        try
+                        {
+
+                            // トランザクション開始
+                            pg_query($pg_conn, "BEGIN");
+
+                            $CarId = $SaveData->CarId;
+                            $NewMirage = $SaveData->NewMirage;
+                            $DifferenceMirage = $SaveData->DifferenceMirage;
+                            $UserId = $SaveData->UserId;
+
+                            // 車検情報を追加するクエリ
+                            $sql1 = "INSERT INTO cars_mileage_history (
+                                car_id,
+                                mileage,
+                                difference_mileage,
+                                add_day,
+                                add_user_id
+                            ) VALUES (
+                                $1,
+                                $2,
+                                $3,
+                                $4,
+                                $5
+                            )";
+
+                            // パラメータセット(タイヤマスター・追加)
+                            $params1 = [
+                                $CarId, 
+                                $NewMirage, 
+                                $DifferenceMirage,
+                                $today,
+                                (int)$UserId
+                            ];
+
+                            // --- 実行 ---
+                            $result1 = pg_query_params($pg_conn, $sql1, $params1);
+
+                            // ベースの UPDATE 文(社有車・マスター情報問い合わせ)
+                            $sql2 = "UPDATE cars SET
+                                new_mileage = $1,
+                                edit_day = $2,
+                                edit_user_id = $3
+                                WHERE car_id = $4 AND un_useble_day IS NULL
+                            ";
+
+                            // パラメータセット(社有車情報・変更)
+                            $params2 = [
+                                $NewMirage,
+                                $today, 
+                                (int)$UserId,
+                                $CarId
+                            ];
+
+
+                            // --- 実行 ---
+                            $result2 = pg_query_params($pg_conn, $sql2, $params2);
+                                
+                        
+                            // クエリ失敗時のチェック
+                            if ($result1 === false|| $result2 === false) {
+                                $all_data = [
+                                    'status' => 0,
+                                    'data' => [pg_last_error($pg_conn)],
+                                    'message' => '登録に失敗しました。'
+                                    ];
+                                    pg_query($pg_conn, "ROLLBACK");
+                            } else {
+                                $all_data = [
+                                    'status' => 1,
+                                    'data' => [true],
+                                    'message' => '登録成功'
+                                ];
+                                pg_query($pg_conn, "COMMIT");
+                            }
+                        } 
+                        catch (Exception $ex) {
+    
+                            var_dump($ex);
+    
+                            // クエリのロールバック
+                            pg_query($pg_conn,"ROLLBACK");
+                            pg_close($pg_conn);
+    
+                        }
+
+                    break;
+
+                    // <summery>
+                    // 車検情報の保存
+                    // </summery>
                     case 'CarCheckInsert':
 
                         // 保存させたいデータ
