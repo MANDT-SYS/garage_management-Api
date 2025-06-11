@@ -1722,6 +1722,7 @@
                                 FROM cars a
                                 LEFT JOIN cars_check_list b ON a.cars_check_list_id = b.cars_check_list_id
                                 WHERE un_useble_day IS NULL AND a.cars_check_list_id IS NOT NULL
+                                ORDER BY a.car_id ASC
                             ';
                    
                             // 実行
