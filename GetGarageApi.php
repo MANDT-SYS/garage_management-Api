@@ -1016,23 +1016,47 @@
                             $result1 = pg_query($sql_1);
                             $MasterData = pg_fetch_all($result1);
 
+
+                            // マスター情報_消された車情報
                             $sql_2 = 'SELECT
-                            car_id,
-                            car_name,
-                            car_no
+                                car_id,
+                                car_name,
+                                car_no
 
-                            FROM cars 
+                                FROM cars 
 
-                            WHERE un_useble_day IS NOT NULL
-                            ORDER BY car_id ASC
-                        ';
+                                WHERE un_useble_day IS NOT NULL
+                                ORDER BY car_id ASC
+                            ';
 
                             // 実行
                             $result2 = pg_query($sql_2);
                             $DELETEMasterData = pg_fetch_all($result2);
 
+                            // マスター情報_消された車情報
+                            $sql_3 = 'SELECT
+                                mileage_history_id,
+                                car_id,
+                                mileage,
+                                difference_mileage
+
+                                FROM cars_mileage_history a 
+
+                                WHERE mileage_history_id = (
+                                  SELECT MAX(mileage_history_id)
+                                    FROM cars_mileage_history
+                                    WHERE car_id = a.car_id
+                                )
+
+                                ORDER BY car_id ASC
+                            ';
+
+                            // 実行
+                            $result3 = pg_query($sql_3);
+                            $MaxMileageData = pg_fetch_all($result3);
+
                             //オブジェクト配列
-                            $all_data = ['data' => ['MasterGarage' => $MasterData, 'DELETEMasterGarage' => $DELETEMasterData] ]; 
+                            $all_data = ['data' => ['MasterGarage' => $MasterData, 'DELETEMasterGarage' => $DELETEMasterData, 'MaxMileageData' => $MaxMileageData] ]; 
 
         
                             //クエリのコミット
