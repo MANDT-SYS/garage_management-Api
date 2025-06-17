@@ -1310,7 +1310,7 @@
                             LEFT JOIN cars b USING(car_id)
                             LEFT JOIN temp_user_table c ON a.add_user_id = c.user_id
                             WHERE $whereClause
-                            ORDER BY display_no ASC, b.car_id ASC;
+                            ORDER BY b.car_id ASC, a.add_day ASC;
                             ";
                             
                             // 実行
@@ -1638,7 +1638,7 @@
                             LEFT JOIN temp_user_table d ON create_tires.useble_change_user_id = d.user_id
                             
                             WHERE $whereClause
-                            ORDER BY create_tires.car_id ASC;
+                            ORDER BY create_tires.car_id ASC, a.tire_change_day ASC;
                             ";
                             
                             // 実行
